@@ -25,13 +25,13 @@
 <!-- Filters -->
 <div class="search-filter-bar">
     <div class="search-input-wrap">
-        <span class="search-icon">⌕</span>
-        <input type="text" class="search-input" id="inv-search" placeholder="Search SKU, product name, category..." oninput="debounceInv()">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input type="text" class="search-input" id="inv-search" placeholder="Search SKU, product name, category..." oninput="debounceInv()" aria-label="Search inventory by SKU, product name, or category">
     </div>
-    <select class="filter-select" id="filter-category" onchange="loadInventory()">
+    <select class="filter-select" id="filter-category" onchange="loadInventory()" aria-label="Filter inventory by category">
         <option value="">All Categories</option>
     </select>
-    <select class="filter-select" id="filter-risk" onchange="loadInventory()">
+    <select class="filter-select" id="filter-risk" onchange="loadInventory()" aria-label="Filter inventory by risk level">
         <option value="">All Risk Levels</option>
         <option value="CRITICAL">🔴 Critical (Out of Stock)</option>
         <option value="LOW">🟡 Low Stock</option>
@@ -41,12 +41,21 @@
 
 <!-- Table -->
 <div class="table-wrapper">
-    <table class="data-table">
+    <table class="data-table" aria-label="Inventory Stock Table">
         <thead>
             <tr>
-                <th>SKU</th><th>Product</th><th>Category</th><th>Warehouse</th>
-                <th>Zone/Bin</th><th>Total</th><th>Reserved</th><th>Damaged</th>
-                <th>Available</th><th>Reorder</th><th>Risk</th><th>Actions</th>
+                <th scope="col">SKU</th>
+                <th scope="col">Product</th>
+                <th scope="col">Category</th>
+                <th scope="col">Warehouse</th>
+                <th scope="col">Zone/Bin</th>
+                <th scope="col">Total</th>
+                <th scope="col">Reserved</th>
+                <th scope="col">Damaged</th>
+                <th scope="col">Available</th>
+                <th scope="col">Reorder</th>
+                <th scope="col">Risk</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody id="inv-tbody">

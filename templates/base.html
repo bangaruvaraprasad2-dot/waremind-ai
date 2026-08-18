@@ -13,58 +13,61 @@
 </head>
 <body>
 
+<!-- ── ACCESSIBILITY SKIP LINK ─────────────────────────────────────────────── -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
 <!-- ── SIDEBAR ─────────────────────────────────────────────────────────────── -->
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar" id="sidebar" role="navigation" aria-label="Main Sidebar Navigation">
     <div class="sidebar-brand">
-        <div class="brand-icon">⬡</div>
+        <div class="brand-icon" aria-hidden="true">⬡</div>
         <div class="brand-text">
             <span class="brand-name">WareMind</span>
             <span class="brand-sub">AI Platform</span>
         </div>
     </div>
 
-    <nav class="sidebar-nav">
-        <div class="nav-section-label">OVERVIEW</div>
-        <a href="/" class="nav-item {% if page == 'landing' %}active{% endif %}" id="nav-landing">
-            <span class="nav-icon">🏠</span>
+    <nav class="sidebar-nav" aria-label="Operations Navigation">
+        <div class="nav-section-label" id="nav-overview-label">OVERVIEW</div>
+        <a href="/" class="nav-item {% if page == 'landing' %}active{% endif %}" id="nav-landing" aria-label="Landing Page">
+            <span class="nav-icon" aria-hidden="true">🏠</span>
             <span class="nav-label">Landing Page</span>
         </a>
-        <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}" id="nav-dashboard">
-            <span class="nav-icon">⊞</span>
+        <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}" id="nav-dashboard" aria-label="Control Tower Dashboard">
+            <span class="nav-icon" aria-hidden="true">⊞</span>
             <span class="nav-label">Control Tower</span>
         </a>
 
-        <div class="nav-section-label">OPERATIONS</div>
-        <a href="/orders" class="nav-item {% if page == 'orders' %}active{% endif %}" id="nav-orders">
-            <span class="nav-icon">◈</span>
+        <div class="nav-section-label" id="nav-ops-label">OPERATIONS</div>
+        <a href="/orders" class="nav-item {% if page == 'orders' %}active{% endif %}" id="nav-orders" aria-label="Orders Management">
+            <span class="nav-icon" aria-hidden="true">◈</span>
             <span class="nav-label">Orders</span>
-            <span class="nav-badge" id="sidebar-orders-badge"></span>
+            <span class="nav-badge" id="sidebar-orders-badge" aria-label="Active critical orders count"></span>
         </a>
-        <a href="/inventory" class="nav-item {% if page == 'inventory' %}active{% endif %}" id="nav-inventory">
-            <span class="nav-icon">▦</span>
+        <a href="/inventory" class="nav-item {% if page == 'inventory' %}active{% endif %}" id="nav-inventory" aria-label="Inventory Management">
+            <span class="nav-icon" aria-hidden="true">▦</span>
             <span class="nav-label">Inventory</span>
         </a>
-        <a href="/exceptions" class="nav-item {% if page == 'exceptions' %}active{% endif %}" id="nav-exceptions">
-            <span class="nav-icon">⚡</span>
+        <a href="/exceptions" class="nav-item {% if page == 'exceptions' %}active{% endif %}" id="nav-exceptions" aria-label="Exception Center">
+            <span class="nav-icon" aria-hidden="true">⚡</span>
             <span class="nav-label">Exception Center</span>
-            <span class="nav-badge nav-badge-danger" id="sidebar-exceptions-badge"></span>
+            <span class="nav-badge nav-badge-danger" id="sidebar-exceptions-badge" aria-label="Open exceptions count"></span>
         </a>
 
-        <div class="nav-section-label">INTELLIGENCE</div>
-        <a href="/analytics" class="nav-item {% if page == 'analytics' %}active{% endif %}" id="nav-analytics">
-            <span class="nav-icon">◉</span>
+        <div class="nav-section-label" id="nav-intel-label">INTELLIGENCE</div>
+        <a href="/analytics" class="nav-item {% if page == 'analytics' %}active{% endif %}" id="nav-analytics" aria-label="Operational Analytics">
+            <span class="nav-icon" aria-hidden="true">◉</span>
             <span class="nav-label">Analytics</span>
         </a>
-        <a href="/copilot" class="nav-item {% if page == 'copilot' %}active{% endif %}" id="nav-copilot">
-            <span class="nav-icon">✦</span>
+        <a href="/copilot" class="nav-item {% if page == 'copilot' %}active{% endif %}" id="nav-copilot" aria-label="AI Warehouse Copilot">
+            <span class="nav-icon" aria-hidden="true">✦</span>
             <span class="nav-label">AI Copilot</span>
-            <span class="nav-tag">AI</span>
+            <span class="nav-tag" aria-label="AI feature">AI</span>
         </a>
     </nav>
 
     <div class="sidebar-footer">
-        <div class="warehouse-status">
-            <div class="status-dot"></div>
+        <div class="warehouse-status" role="status" aria-label="Warehouse status: Central Hub Active">
+            <div class="status-dot" aria-hidden="true"></div>
             <div>
                 <div class="status-name">Central Hub</div>
                 <div class="status-sub">ACTIVE</div>
@@ -77,25 +80,25 @@
 <div class="main-wrapper">
 
     <!-- TOP BAR -->
-    <header class="topbar">
+    <header class="topbar" role="banner">
         <div class="topbar-left">
-            <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
-            <div class="page-breadcrumb">
+            <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Navigation Sidebar" aria-expanded="true">☰</button>
+            <nav class="page-breadcrumb" aria-label="Breadcrumb">
                 <span class="breadcrumb-home">WareMind AI</span>
-                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-sep" aria-hidden="true">›</span>
                 <span class="breadcrumb-current">{% block breadcrumb %}Dashboard{% endblock %}</span>
-            </div>
+            </nav>
         </div>
         <div class="topbar-right">
-            <div class="topbar-time" id="topbar-time"></div>
-            <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleThemeMode()" title="Toggle Dark/Light Mode">
+            <div class="topbar-time" id="topbar-time" role="status" aria-label="Current system time"></div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleThemeMode()" title="Toggle Dark/Light Mode" aria-label="Toggle Dark or Light theme mode">
                 🌙 Dark
             </button>
-            <button class="crisis-btn" onclick="showCrisisModal()" title="Run crisis simulation">
+            <button class="crisis-btn" onclick="showCrisisModal()" title="Run crisis simulation" aria-label="Simulate Warehouse Stock Crisis">
                 🚨 Simulate Crisis
             </button>
-            <div class="topbar-avatar">
-                <div class="avatar-circle">WM</div>
+            <div class="topbar-avatar" role="region" aria-label="User profile">
+                <div class="avatar-circle" aria-hidden="true">WM</div>
                 <div>
                     <div class="avatar-name">Warehouse Manager</div>
                     <div class="avatar-role">Admin</div>
@@ -105,17 +108,17 @@
     </header>
 
     <!-- PAGE CONTENT -->
-    <main class="page-content">
+    <main class="page-content" id="main-content" tabindex="-1" role="main">
         {% block content %}{% endblock %}
     </main>
 </div>
 
 <!-- ── CRISIS MODAL ────────────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="crisis-modal" style="display:none;">
+<div class="modal-overlay" id="crisis-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="crisis-modal-title">
     <div class="modal crisis-modal-box">
         <div class="crisis-header">
-            <div class="crisis-icon-big">🚨</div>
-            <h2>Simulate Warehouse Crisis</h2>
+            <div class="crisis-icon-big" aria-hidden="true">🚨</div>
+            <h2 id="crisis-modal-title">Simulate Warehouse Crisis</h2>
             <p>This will create a realistic inventory conflict scenario for demonstration.</p>
         </div>
         <div class="crisis-scenario">
@@ -123,20 +126,20 @@
                 <span class="scenario-label">Critical Order</span>
                 <span class="scenario-val">Requires 10 units</span>
             </div>
-            <div class="scenario-arrow">→</div>
+            <div class="scenario-arrow" aria-hidden="true">→</div>
             <div class="scenario-item">
                 <span class="scenario-label">Available Stock</span>
                 <span class="scenario-val shortage">Only 7 units</span>
             </div>
-            <div class="scenario-arrow">+</div>
+            <div class="scenario-arrow" aria-hidden="true">+</div>
             <div class="scenario-item">
                 <span class="scenario-label">Normal Order</span>
                 <span class="scenario-val">Also needs 5 units</span>
             </div>
         </div>
         <div class="modal-actions">
-            <button class="btn-secondary" onclick="closeCrisisModal()">Cancel</button>
-            <button class="btn-danger" id="run-crisis-btn" onclick="runCrisisSimulation()">
+            <button class="btn-secondary" onclick="closeCrisisModal()" aria-label="Cancel simulation modal">Cancel</button>
+            <button class="btn-danger" id="run-crisis-btn" onclick="runCrisisSimulation()" aria-label="Run crisis simulation">
                 🚨 Run Simulation
             </button>
         </div>
@@ -144,10 +147,10 @@
 </div>
 
 <!-- ── CRISIS RESULT MODAL ─────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="crisis-result-modal" style="display:none;">
+<div class="modal-overlay" id="crisis-result-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Crisis Simulation Results">
     <div class="modal crisis-result-box">
         <div class="crisis-alert-header">
-            <div class="crisis-alert-badge">🚨 INVENTORY CONFLICT DETECTED</div>
+            <div class="crisis-alert-badge" role="status">🚨 INVENTORY CONFLICT DETECTED</div>
         </div>
         <div id="crisis-result-content"></div>
         <div class="modal-actions" id="crisis-result-actions"></div>
@@ -155,7 +158,7 @@
 </div>
 
 <!-- ── TOAST CONTAINER ────────────────────────────────────────────────────── -->
-<div id="toast-container"></div>
+<div id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>

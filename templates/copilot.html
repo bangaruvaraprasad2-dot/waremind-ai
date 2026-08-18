@@ -13,28 +13,28 @@
     </div>
 </div>
 
-<div class="copilot-layout">
+<div class="copilot-layout" role="region" aria-label="AI Copilot Chat Interface">
     <!-- Messages -->
-    <div class="chat-messages" id="chat-messages">
+    <div class="chat-messages" id="chat-messages" role="log" aria-label="Copilot Message History" aria-live="polite" aria-relevant="additions">
         <!-- Welcome message injected by JS -->
     </div>
 
     <!-- Input Area -->
-    <div class="chat-input-area">
-        <div class="quick-actions">
-            <button class="quick-btn" onclick="sendQuick('Which orders are at risk?')">🚨 Orders at risk</button>
-            <button class="quick-btn" onclick="sendQuick('What products need replenishment?')">📦 Replenishment status</button>
-            <button class="quick-btn" onclick="sendQuick('Show me the warehouse bottleneck')">🚧 Bottleneck analysis</button>
-            <button class="quick-btn" onclick="sendQuick('Give me today summary')">📊 Today summary</button>
-            <button class="quick-btn" onclick="sendQuick('Show all open exceptions')">⚡ Active exceptions</button>
-            <button class="quick-btn" onclick="sendQuick('Dispatch status')">🚚 Dispatch status</button>
-            <button class="quick-btn" onclick="sendQuick('Inventory overview')">▦ Inventory overview</button>
-            <button class="quick-btn" onclick="sendQuick('help')">❓ Help</button>
+    <div class="chat-input-area" role="form" aria-label="Copilot Message Form">
+        <div class="quick-actions" role="group" aria-label="Quick Action Suggestions">
+            <button class="quick-btn" onclick="sendQuick('Which orders are at risk?')" aria-label="Ask which orders are at risk">🚨 Orders at risk</button>
+            <button class="quick-btn" onclick="sendQuick('What products need replenishment?')" aria-label="Ask what products need replenishment">📦 Replenishment status</button>
+            <button class="quick-btn" onclick="sendQuick('Show me the warehouse bottleneck')" aria-label="Ask for bottleneck analysis">🚧 Bottleneck analysis</button>
+            <button class="quick-btn" onclick="sendQuick('Give me today summary')" aria-label="Ask for today summary">📊 Today summary</button>
+            <button class="quick-btn" onclick="sendQuick('Show all open exceptions')" aria-label="Ask for active exceptions">⚡ Active exceptions</button>
+            <button class="quick-btn" onclick="sendQuick('Dispatch status')" aria-label="Ask for dispatch status">🚚 Dispatch status</button>
+            <button class="quick-btn" onclick="sendQuick('Inventory overview')" aria-label="Ask for inventory overview">▦ Inventory overview</button>
+            <button class="quick-btn" onclick="sendQuick('help')" aria-label="Show help options">❓ Help</button>
         </div>
         <div class="chat-input-row">
             <textarea class="chat-input" id="chat-input" placeholder="Ask about orders, inventory, exceptions, performance..." rows="1"
-                onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-            <button class="send-btn" onclick="sendMessage()" id="send-btn" title="Send">➤</button>
+                onkeydown="handleKey(event)" oninput="autoResize(this)" aria-label="Type your query for AI Copilot"></textarea>
+            <button class="send-btn" onclick="sendMessage()" id="send-btn" title="Send message" aria-label="Send query to Copilot">➤</button>
         </div>
     </div>
 </div>

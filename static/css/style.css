@@ -723,4 +723,60 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important;
 [data-theme="light"] .telemetry-alert-card { background: #f8fafc; border-color: rgba(0,0,0,0.08); }
 [data-theme="light"] .telemetry-log-item { border-bottom-color: rgba(0,0,0,0.06); }
 
+/* ── WCAG 2.1 AA ACCESSIBILITY MODULE ────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -120px;
+  left: 16px;
+  z-index: 99999;
+  background: var(--accent-light);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: var(--shadow-modal);
+  transition: top 0.25s ease-out;
+}
+.skip-link:focus {
+  top: 16px;
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Universal High-Contrast Focus Visible Rings */
+:focus-visible {
+  outline: 2px solid var(--accent-light) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+[data-theme="light"] :focus-visible {
+  outline: 2px solid var(--accent) !important;
+}
+
+/* Screen Reader Only Utility */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Motion Sensitivity Support (Accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
 
