@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% block title %}Control Tower{% endblock %}
+{% block breadcrumb %}Control Tower{% endblock %}
+
+{% block content %}
+<!-- Executive Header & Control Toolbar -->
+<div class="page-header">
+    <div>
+        <div class="header-tag">
+            <span class="live-pulse-dot"></span>
+            LIVE OPERATIONS TELEMETRY
+        </div>
+        <h1 class="page-title">Warehouse Control Tower</h1>
+        <p class="page-subtitle">Autonomous Decision Support & Fulfillment Intelligence</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-secondary" onclick="scanForExceptions()">⚡ Scan Exceptions</button>
+        <button class="btn-ghost" onclick="refreshDashboard()">↺ Refresh</button>
+        <button class="btn-danger pulse-btn" onclick="showCrisisModal()">🚨 Simulate Crisis Demo</button>
+    </div>
+</div>
+
+<!-- ── 4 HERO KPI CARDS ─────────────────────────────────────────────────── -->
+<div class="kpi-hero-grid" id="kpi-grid">
+    <!-- Card 1: Fulfillment Performance -->
+    <div class="kpi-hero-card kpi-hero-success">
+        <div class="kpi-hero-top">
+            <span class="kpi-hero-title">Fulfillment Rate</span>
+            <span class="kpi-hero-badge badge-success" id="kpi-fulfillment-badge">+2.4%</span>
+        </div>
+        <div class="kpi-hero-val" id="kpi-fulfillment-val">--%</div>
+        <div class="kpi-hero-sub" id="kpi-fulfillment-sub">Dispatched vs Total Orders</div>
+    </div>
+
+    <!-- Card 2: Order Pipeline -->
+    <div class="kpi-hero-card kpi-hero-primary">
+        <div class="kpi-hero-top">
+            <span class="kpi-hero-title">Active Pipeline</span>
+            <span class="kpi-hero-badge badge-critical" id="kpi-critical-badge">-- Critical</span>
+        </div>
+        <div class="kpi-hero-val" id="kpi-pending-val">--</div>
+        <div class="kpi-hero-sub" id="kpi-pending-sub">Total Active Orders</div>
+    </div>
+
+    <!-- Card 3: Total Stock Units -->
+    <div class="kpi-hero-card kpi-hero-info">
+        <div class="kpi-hero-top">
+            <span class="kpi-hero-title">Total Inventory</span>
+            <span class="kpi-hero-badge badge-warning" id="kpi-lowstock-badge">-- Low Stock</span>
+        </div>
+        <div class="kpi-hero-val" id="kpi-inventory-val">--</div>
+        <div class="kpi-hero-sub">Units Across Bins</div>
+    </div>
+
+    <!-- Card 4: Open Exceptions -->
+    <div class="kpi-hero-card kpi-hero-warning">
+        <div class="kpi-hero-top">
+            <span class="kpi-hero-title">Open Exceptions</span>
+            <span class="kpi-hero-badge badge-info" id="kpi-ready-badge">-- Ready</span>
+        </div>
+        <div class="kpi-hero-val" id="kpi-exceptions-val">--</div>
+        <div class="kpi-hero-sub" id="kpi-exceptions-sub">Action Needed</div>
+    </div>
+</div>
+
+<!-- ── MAIN ANALYTICS SECTION ───────────────────────────────────────────── -->
+<div class="dashboard-analytics-grid">
+    <!-- Left: Fulfillment Pipeline Stage Distribution -->
+    <div class="chart-card dashboard-chart-main">
+        <div class="chart-header">
+            <div>
+                <div class="chart-title">Order Fulfillment Pipeline</div>
+                <div class="chart-sub">Active orders across execution stages</div>
+            </div>
+            <div class="chart-legend-pills">
+                <span class="legend-pill pill-created">Created</span>
+                <span class="legend-pill pill-alloc">Allocated</span>
+                <span class="legend-pill pill-pick">Picking</span>
+                <span class="legend-pill pill-pack">Packing</span>
+                <span class="legend-pill pill-qc">QC</span>
+                <span class="legend-pill pill-dispatch">Dispatch</span>
+            </div>
+        </div>
+        <div class="chart-body" style="height: 280px;">
+            <canvas id="ordersStatusChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Right: Priority Risk & Stock Health -->
+    <div class="chart-card dashboard-chart-side">
+        <div class="chart-header">
+            <div class="tab-switcher-mini">
+                <button class="tab-btn-mini active" id="btn-chart-priority" onclick="switchSideChart('priority')">Priority Risk</button>
+                <button class="tab-btn-mini" id="btn-chart-inv" onclick="switchSideChart('inventory')">Stock Health</button>
+            </div>
+        </div>
+        <div class="chart-body" style="height: 240px; position:relative;">
+            <div id="side-chart-priority-wrap">
+                <canvas id="priorityChart"></canvas>
+            </div>
+            <div id="side-chart-inv-wrap" style="display:none;">
+                <canvas id="inventoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── COMMAND & OPERATIONS STREAM SPLIT VIEW ────────────────────────────── -->
+<div class="command-stream-grid">
+    <!-- Left: Actionable Operational Alerts -->
+    <div class="command-panel">
+        <div class="panel-header">
+            <div class="panel-title-wrap">
+                <span class="panel-icon">🚨</span>
+                <h3 class="panel-title">Active Operational Alerts & Prescriptions</h3>
+            </div>
+            <span class="panel-sub" id="alert-count-label">0 Alerts</span>
+        </div>
+        <div class="panel-body" id="alerts-container">
+            <div class="activity-skeleton" style="height:70px;margin-bottom:10px;"></div>
+            <div class="activity-skeleton" style="height:70px;"></div>
+        </div>
+    </div>
+
+    <!-- Right: Live Operations Telemetry Stream -->
+    <div class="command-panel">
+        <div class="panel-header">
+            <div class="panel-title-wrap">
+                <span class="panel-icon">⚡</span>
+                <h3 class="panel-title">Live Warehouse Event Stream</h3>
+            </div>
+            <span class="panel-sub">Real-Time Log</span>
+        </div>
+        <div class="panel-body" id="activity-container">
+            <div class="activity-skeleton" style="height:60px;margin-bottom:8px;"></div>
+            <div class="activity-skeleton" style="height:60px;margin-bottom:8px;"></div>
+            <div class="activity-skeleton" style="height:60px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dashboardCharts = {};
+
+const STATUS_COLORS = {
+    CREATED: '#64748b',
+    PRIORITIZED: '#6366f1',
+    ALLOCATED: '#3b82f6',
+    PICKING: '#8b5cf6',
+    PACKING: '#f59e0b',
+    QUALITY_CHECK: '#ec4899',
+    READY_TO_DISPATCH: '#10b981',
+    DISPATCHED: '#14b8a6',
+    COMPLETED: '#22c55e',
+    EXCEPTION: '#ef4444',
+};
+
+const PRIORITY_COLORS = {
+    CRITICAL: '#ef4444',
+    HIGH: '#f59e0b',
+    NORMAL: '#3b82f6',
+    LOW: '#64748b',
+};
+
+async function refreshDashboard() {
+    try {
+        const resp = await fetch('/api/dashboard');
+        const data = await resp.json();
+        renderKPIs(data.kpis);
+        renderAlerts(data.alerts);
+        renderActivity(data.activity);
+        renderCharts(data.charts);
+    } catch(e) {
+        showToast('Failed to connect to Control Tower telemetry API', 'error');
+    }
+}
+
+function renderKPIs(kpis) {
+    document.getElementById('kpi-fulfillment-val').textContent = kpis.fulfillment_rate + '%';
+    document.getElementById('kpi-pending-val').textContent = kpis.pending_orders;
+    document.getElementById('kpi-pending-sub').textContent = `Out of ${kpis.total_orders} total orders`;
+    document.getElementById('kpi-inventory-val').textContent = kpis.total_inventory_units.toLocaleString();
+
+    document.getElementById('kpi-exceptions-val').textContent = kpis.open_exceptions;
+    document.getElementById('kpi-exceptions-sub').textContent = kpis.critical_exceptions > 0 ? `${kpis.critical_exceptions} CRITICAL Severity` : 'All issues under control';
+
+    document.getElementById('kpi-critical-badge').textContent = `🚨 ${kpis.critical_orders} Critical`;
+    document.getElementById('kpi-lowstock-badge').textContent = `⚠ ${kpis.low_stock_products} Low Stock`;
+    document.getElementById('kpi-ready-badge').textContent = `🚚 ${kpis.ready_to_dispatch} Ready`;
+}
+
+function renderAlerts(alerts) {
+    const container = document.getElementById('alerts-container');
+    const label = document.getElementById('alert-count-label');
+
+    if (!alerts || alerts.length === 0) {
+        label.textContent = 'All Healthy';
+        container.innerHTML = `
+            <div class="empty-state-mini">
+                <div class="empty-state-icon">✅</div>
+                <div class="empty-state-title">No Active Risk Alerts</div>
+                <div class="empty-state-sub">Fulfillment pipeline is running smoothly without shortages.</div>
+            </div>
+        `;
+        return;
+    }
+
+    label.textContent = `${alerts.length} Actionable`;
+    container.innerHTML = alerts.map(a => `
+        <div class="telemetry-alert-card alert-type-${a.type}">
+            <div class="tac-left">
+                <span class="tac-icon">${a.icon}</span>
+                <div class="tac-info">
+                    <div class="tac-msg">${a.message}</div>
+                </div>
+            </div>
+            <div class="tac-action">
+                ${a.order_id ? `<a href="/orders/${a.order_id}" class="btn-sm btn-primary">Resolve Order →</a>` : ''}
+                ${a.exception_id ? `<a href="/exceptions" class="btn-sm btn-warning">Execute Decision →</a>` : ''}
+                ${!a.order_id && !a.exception_id ? `<a href="/inventory" class="btn-sm btn-secondary">Restock →</a>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderActivity(activity) {
+    const container = document.getElementById('activity-container');
+    if (!activity || activity.length === 0) {
+        container.innerHTML = '<div class="empty-state-mini"><div class="empty-state-title">No activity logs recorded today</div></div>';
+        return;
+    }
+
+    const typeIcons = {
+        ALLOCATION: '📦', OUTBOUND: '🚚', DAMAGE: '⚠️', INBOUND: '📥',
+        ADJUSTMENT: '🔧', RELEASE: '🔓', ORDER: '◈', default: '⚡'
+    };
+
+    container.innerHTML = activity.map(a => `
+        <div class="telemetry-log-item">
+            <div class="tli-icon">${typeIcons[a.type] || typeIcons.default}</div>
+            <div class="tli-body">
+                <div class="tli-msg">${a.message}</div>
+                <div class="tli-ref">${a.reference ? 'Ref: ' + a.reference : ''}</div>
+            </div>
+            <div class="tli-time">${a.time}</div>
+        </div>
+    `).join('');
+}
+
+function renderCharts(cData) {
+    // 1. Order Status Main Chart
+    const statusCtx = document.getElementById('ordersStatusChart').getContext('2d');
+    if (dashboardCharts.status) dashboardCharts.status.destroy();
+
+    const statusLabels = Object.keys(cData.orders_by_status);
+    const statusValues = Object.values(cData.orders_by_status);
+
+    dashboardCharts.status = new Chart(statusCtx, {
+        type: 'bar',
+        data: {
+            labels: statusLabels.map(l => l.replace(/_/g, ' ')),
+            datasets: [{
+                label: 'Orders',
+                data: statusValues,
+                backgroundColor: statusLabels.map(l => STATUS_COLORS[l] || '#64748b'),
+                borderRadius: 8,
+                barThickness: 24,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '600' } } }
+            }
+        }
+    });
+
+    // 2. Priority Donut Chart
+    const pCtx = document.getElementById('priorityChart').getContext('2d');
+    if (dashboardCharts.priority) dashboardCharts.priority.destroy();
+
+    dashboardCharts.priority = new Chart(pCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(cData.orders_by_priority),
+            datasets: [{
+                data: Object.values(cData.orders_by_priority),
+                backgroundColor: Object.keys(cData.orders_by_priority).map(k => PRIORITY_COLORS[k]),
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, font: { size: 11 } } }
+            }
+        }
+    });
+
+    // 3. Inventory Health Chart
+    const invCtx = document.getElementById('inventoryChart').getContext('2d');
+    if (dashboardCharts.inventory) dashboardCharts.inventory.destroy();
+
+    const ih = cData.inventory_health;
+    dashboardCharts.inventory = new Chart(invCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Available Stock', 'Reserved Stock', 'Damaged Stock'],
+            datasets: [{
+                data: [ih.available, ih.reserved, ih.damaged],
+                backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+function switchSideChart(mode) {
+    document.getElementById('btn-chart-priority').classList.toggle('active', mode === 'priority');
+    document.getElementById('btn-chart-inv').classList.toggle('active', mode === 'inventory');
+    document.getElementById('side-chart-priority-wrap').style.display = mode === 'priority' ? 'block' : 'none';
+    document.getElementById('side-chart-inv-wrap').style.display = mode === 'inventory' ? 'block' : 'none';
+}
+
+async function scanForExceptions() {
+    showToast('🔍 Scanning warehouse telemetry for exceptions...', 'info');
+    try {
+        const resp = await fetch('/api/exceptions/scan', {method: 'POST'});
+        const data = await resp.json();
+        if (data.new_exceptions > 0) {
+            showToast(`⚡ Detected ${data.new_exceptions} new exception(s)`, 'warning');
+        } else {
+            showToast('✅ Telemetry scan clean. No new exceptions detected.', 'success');
+        }
+        refreshDashboard();
+    } catch(e) {
+        showToast('Scan failed', 'error');
+    }
+}
+
+refreshDashboard();
+setInterval(refreshDashboard, 30000);
+</script>
+{% endblock %}

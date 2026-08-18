@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WareMind AI — Authentication Portal">
+    <title>Login — WareMind AI Intelligence Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body.login-page {
+            background: #090b10;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-bg-glow {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, rgba(139,92,246,0.1) 40%, rgba(0,0,0,0) 70%);
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .login-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 440px;
+            background: #111622;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,0.12);
+        }
+
+        .login-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            text-decoration: none;
+        }
+
+        .login-brand-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; color: white;
+            box-shadow: 0 0 20px rgba(99,102,241,0.4);
+        }
+
+        .login-brand-text {
+            text-align: left;
+        }
+
+        .login-brand-name {
+            font-size: 22px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+
+        .login-brand-sub {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 3px;
+        }
+
+        .login-header-text {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .login-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #f1f5f9;
+            margin-bottom: 6px;
+        }
+
+        .login-subtitle {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        /* Auth Tabs */
+        .auth-tabs {
+            display: flex;
+            background: #161c2b;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .auth-tab-btn {
+            flex: 1;
+            padding: 9px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .auth-tab-btn.active {
+            background: #6366f1;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(99,102,241,0.4);
+        }
+
+        /* Google SSO Button */
+        .btn-google-sso {
+            width: 100%;
+            background: #ffffff;
+            color: #1f2937;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-bottom: 16px;
+        }
+
+        .btn-google-sso:hover {
+            background: #f9fafb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+        }
+
+        .google-icon-svg {
+            width: 18px; height: 18px;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* OTP Inputs */
+        .otp-inputs-wrap {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .otp-box {
+            width: 46px;
+            height: 52px;
+            background: #161c2b;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .otp-box:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.3);
+            background: #1e2536;
+        }
+
+        .otp-demo-alert {
+            background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(99,102,241,0.1));
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .otp-demo-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 800;
+            color: #10b981;
+            letter-spacing: 2px;
+        }
+
+        .otp-timer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 16px;
+        }
+
+        .btn-resend-otp {
+            background: none;
+            border: none;
+            color: #6366f1;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+        }
+
+        .btn-resend-otp:disabled {
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        .login-footer-links {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .login-footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+        }
+
+        .login-footer-links a:hover { color: #6366f1; }
+    </style>
+</head>
+<body class="login-page">
+
+    <div class="login-bg-glow"></div>
+
+    <div class="login-card">
+
+        <!-- Brand Header -->
+        <a href="/" class="login-brand">
+            <div class="login-brand-icon">⬡</div>
+            <div class="login-brand-text">
+                <div class="login-brand-name">WareMind AI</div>
+                <div class="login-brand-sub">Operations Portal</div>
+            </div>
+        </a>
+
+        <div class="login-header-text">
+            <div class="login-title">Sign In to Control Tower</div>
+            <div class="login-subtitle">Enter your email for OTP verification or use Gmail</div>
+        </div>
+
+        <!-- Auth Method Tabs -->
+        <div class="auth-tabs">
+            <button class="auth-tab-btn active" id="tab-otp-btn" onclick="switchTab('otp')">
+                ✉️ Email OTP
+            </button>
+            <button class="auth-tab-btn" id="tab-google-btn" onclick="switchTab('google')">
+                <svg class="google-icon-svg" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                Gmail SSO
+            </button>
+        </div>
+
+        <!-- ── TAB 1: EMAIL OTP FLOW ─────────────────────────────────────────── -->
+        <div id="auth-otp-section">
+
+            <!-- STEP 1: EMAIL INPUT -->
+            <div id="otp-step-email">
+                <div class="form-group">
+                    <label class="form-label">Work Email / Gmail</label>
+                    <input type="email" class="form-input" id="email-input" placeholder="e.g. manager@waremind.ai" value="manager@waremind.ai">
+                </div>
+
+                <button class="btn-primary" style="width:100%;padding:12px;font-size:14px;margin-top:8px;" onclick="requestOTP()" id="btn-request-otp">
+                    📩 Send 6-Digit OTP
+                </button>
+
+                <div class="auth-divider">or quick access</div>
+
+                <button class="btn-google-sso" onclick="loginWithGoogle()">
+                    <svg class="google-icon-svg" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    Continue with Gmail
+                </button>
+            </div>
+
+            <!-- STEP 2: VERIFY 6-DIGIT OTP -->
+            <div id="otp-step-verify" style="display:none;">
+                <div class="otp-demo-alert" id="otp-demo-alert">
+                    <div>
+                        <span style="color:#94a3b8;display:block;font-size:10px;text-transform:uppercase">Generated Demo OTP</span>
+                        <span class="otp-demo-code" id="otp-demo-code">123456</span>
+                    </div>
+                    <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="autoFillOTP()">Auto-Fill</button>
+                </div>
+
+                <div style="text-align:center;margin-bottom:12px">
+                    <span style="font-size:12px;color:#94a3b8">Enter code sent to <strong id="sent-email-display" style="color:#ffffff"></strong></span>
+                    <button onclick="backToStep1()" style="background:none;border:none;color:#6366f1;font-size:12px;cursor:pointer;margin-left:4px">Change</button>
+                </div>
+
+                <!-- 6 Digit Input Boxes -->
+                <div class="otp-inputs-wrap">
+                    <input type="text" maxlength="1" class="otp-box" id="otp-1" oninput="onOtpInput(1)" onkeydown="onOtpKeyDown(1, event)">
+                    <input type="text" maxlength="1" class="otp-box" id="otp-2" oninput="onOtpInput(2)" onkeydown="onOtpKeyDown(2, event)">
+                    <input type="text" maxlength="1" class="otp-box" id="otp-3" oninput="onOtpInput(3)" onkeydown="onOtpKeyDown(3, event)">
+                    <input type="text" maxlength="1" class="otp-box" id="otp-4" oninput="onOtpInput(4)" onkeydown="onOtpKeyDown(4, event)">
+                    <input type="text" maxlength="1" class="otp-box" id="otp-5" oninput="onOtpInput(5)" onkeydown="onOtpKeyDown(5, event)">
+                    <input type="text" maxlength="1" class="otp-box" id="otp-6" oninput="onOtpInput(6)" onkeydown="onOtpKeyDown(6, event)">
+                </div>
+
+                <div class="otp-timer-row">
+                    <span>Resend code in: <strong id="timer-count">30s</strong></span>
+                    <button class="btn-resend-otp" id="btn-resend" disabled onclick="requestOTP()">Resend OTP</button>
+                </div>
+
+                <button class="btn-primary" style="width:100%;padding:12px;font-size:14px;" onclick="verifyOTP()" id="btn-verify-otp">
+                    ✓ Verify OTP & Enter Control Tower →
+                </button>
+            </div>
+
+        </div>
+
+        <!-- ── TAB 2: GOOGLE/GMAIL SSO SECTION ───────────────────────────────── -->
+        <div id="auth-google-section" style="display:none;">
+            <div style="text-align:center;padding:10px 0 20px">
+                <p style="font-size:13px;color:#94a3b8;line-height:1.6">
+                    Log in instantly with your corporate Gmail account. No password or OTP required.
+                </p>
+            </div>
+
+            <button class="btn-google-sso" style="padding:14px;font-size:15px;" onclick="loginWithGoogle()">
+                <svg class="google-icon-svg" style="width:22px;height:22px" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                Sign In with Gmail / Google SSO
+            </button>
+
+            <div style="background:#161c2b;border-radius:10px;padding:12px;margin-top:16px;text-align:center;font-size:12px;color:#64748b">
+                🔒 Enterprise SSO Single Sign-On Enabled
+            </div>
+        </div>
+
+        <div class="login-footer-links">
+            <a href="/">← Back to Landing Page</a> · <a href="/dashboard">Direct Control Tower Access →</a>
+        </div>
+
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <script>
+        let currentOtpCode = "";
+        let timerInterval = null;
+
+        function switchTab(tab) {
+            document.getElementById('tab-otp-btn').classList.toggle('active', tab === 'otp');
+            document.getElementById('tab-google-btn').classList.toggle('active', tab === 'google');
+            document.getElementById('auth-otp-section').style.display = tab === 'otp' ? 'block' : 'none';
+            document.getElementById('auth-google-section').style.display = tab === 'google' ? 'block' : 'none';
+        }
+
+        async function requestOTP() {
+            const email = document.getElementById('email-input').value.trim();
+            if (!email || !email.includes('@')) {
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-request-otp');
+            btn.disabled = true;
+            btn.textContent = '⏳ Sending OTP...';
+
+            try {
+                const resp = await fetch('/api/auth/send-otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email})
+                });
+                const data = await resp.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    btn.disabled = false;
+                    btn.textContent = '📩 Send 6-Digit OTP';
+                    return;
+                }
+
+                currentOtpCode = data.otp_demo;
+                document.getElementById('sent-email-display').textContent = email;
+                document.getElementById('otp-demo-code').textContent = data.otp_demo;
+
+                // Move to step 2
+                document.getElementById('otp-step-email').style.display = 'none';
+                document.getElementById('otp-step-verify').style.display = 'block';
+
+                showToast(`📩 OTP Code: ${data.otp_demo} sent to ${email}`, 'success');
+
+                // Clear input boxes & focus box 1
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById(`otp-${i}`).value = '';
+                }
+                document.getElementById('otp-1').focus();
+
+                startResendTimer();
+            } catch(e) {
+                showToast('Failed to send OTP. Try again.', 'error');
+                btn.disabled = false;
+                btn.textContent = '📩 Send 6-Digit OTP';
+            }
+        }
+
+        function autoFillOTP() {
+            if (!currentOtpCode || currentOtpCode.length !== 6) return;
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`otp-${i}`).value = currentOtpCode[i-1];
+            }
+            document.getElementById('otp-6').focus();
+        }
+
+        function backToStep1() {
+            document.getElementById('otp-step-verify').style.display = 'none';
+            document.getElementById('otp-step-email').style.display = 'block';
+            document.getElementById('btn-request-otp').disabled = false;
+            document.getElementById('btn-request-otp').textContent = '📩 Send 6-Digit OTP';
+        }
+
+        function onOtpInput(index) {
+            const currentBox = document.getElementById(`otp-${index}`);
+            if (currentBox.value.length === 1 && index < 6) {
+                document.getElementById(`otp-${index + 1}`).focus();
+            }
+            // Auto submit if all 6 filled
+            let fullOtp = "";
+            for (let i = 1; i <= 6; i++) {
+                fullOtp += document.getElementById(`otp-${i}`).value;
+            }
+            if (fullOtp.length === 6) {
+                verifyOTP();
+            }
+        }
+
+        function onOtpKeyDown(index, event) {
+            if (event.key === 'Backspace' && !document.getElementById(`otp-${index}`).value && index > 1) {
+                document.getElementById(`otp-${index - 1}`).focus();
+            }
+        }
+
+        async function verifyOTP() {
+            const email = document.getElementById('sent-email-display').textContent;
+            let otp = "";
+            for (let i = 1; i <= 6; i++) {
+                otp += document.getElementById(`otp-${i}`).value;
+            }
+
+            if (otp.length !== 6) {
+                showToast('Please enter all 6 digits of the OTP code.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-verify-otp');
+            btn.disabled = true;
+            btn.textContent = '⏳ Verifying...';
+
+            try {
+                const resp = await fetch('/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, otp})
+                });
+                const data = await resp.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    btn.disabled = false;
+                    btn.textContent = '✓ Verify OTP & Enter Control Tower →';
+                    return;
+                }
+
+                showToast('✅ Verification successful! Redirecting...', 'success');
+                setTimeout(() => window.location.href = data.redirect_url || '/dashboard', 1000);
+            } catch(e) {
+                showToast('Verification failed. Check your connection.', 'error');
+                btn.disabled = false;
+                btn.textContent = '✓ Verify OTP & Enter Control Tower →';
+            }
+        }
+
+        async function loginWithGoogle() {
+            try {
+                const resp = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: "manager.waremind@gmail.com", name: "Gmail Operations Admin"})
+                });
+                const data = await resp.json();
+                showToast('✅ Signed in with Gmail! Redirecting...', 'success');
+                setTimeout(() => window.location.href = data.redirect_url || '/dashboard', 1000);
+            } catch(e) {
+                showToast('Google login failed', 'error');
+            }
+        }
+
+        function startResendTimer() {
+            clearInterval(timerInterval);
+            let seconds = 30;
+            const resendBtn = document.getElementById('btn-resend');
+            const timerCount = document.getElementById('timer-count');
+            resendBtn.disabled = true;
+
+            timerInterval = setInterval(() => {
+                seconds--;
+                timerCount.textContent = `${seconds}s`;
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerCount.textContent = '0s';
+                    resendBtn.disabled = false;
+                }
+            }, 1000);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+    </style>
+</head>
+<body class="login-page">

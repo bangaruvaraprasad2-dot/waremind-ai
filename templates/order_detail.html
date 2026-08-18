@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_number }}{% endblock %}
+{% block breadcrumb %}Orders › {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div id="order-header">
+    <div class="page-header">
+        <div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+                <h1 class="page-title" id="order-num">{{ order.order_number }}</h1>
+                <span class="badge" id="order-priority-badge"></span>
+                <span class="badge" id="order-status-badge"></span>
+            </div>
+            <p class="page-subtitle" id="order-customer"></p>
+        </div>
+        <div class="page-actions" id="order-actions"></div>
+    </div>
+</div>
+
+<!-- Timeline -->
+<div class="info-card" style="margin-bottom:20px">
+    <div class="info-card-title">Fulfillment Progress</div>
+    <div class="timeline-wrapper">
+        <div class="timeline" id="order-timeline"></div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+    <!-- Left: Items + Exceptions -->
+    <div>
+        <!-- Priority Decision -->
+        <div class="info-card">
+            <div class="info-card-title">🤖 Priority Decision Explanation</div>
+            <div class="priority-reason-box" id="priority-reason">Loading...</div>
+        </div>
+
+        <!-- Items -->
+        <div class="info-card">
+            <div class="info-card-title">Order Items</div>
+            <table class="data-table">
+                <thead>
+                    <tr><th>SKU</th><th>Product</th><th>Required</th><th>Allocated</th><th>Available</th><th>Shortage</th></tr>
+                </thead>
+                <tbody id="items-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- Exceptions -->
+        <div id="exceptions-section" style="display:none">
+            <div class="info-card-title" style="margin-bottom:10px">⚠️ Active Exceptions</div>
+            <div id="exceptions-list"></div>
+        </div>
+    </div>
+
+    <!-- Right: Operations Panel -->
+    <div>
+        <!-- Allocations -->
+        <div class="info-card">
+            <div class="info-card-title">📦 Allocations</div>
+            <div id="allocations-list" style="font-size:12px;color:var(--text-secondary)">—</div>
+        </div>
+
+        <!-- Pick Tasks -->
+        <div class="info-card">
+            <div class="info-card-title">🔄 Pick Tasks</div>
+            <div id="pick-tasks-list" style="font-size:12px;color:var(--text-secondary)">—</div>
+        </div>
+
+        <!-- Pack & QC & Dispatch -->
+        <div class="info-card">
+            <div class="info-card-title">📬 Pack / QC / Dispatch</div>
+            <div id="pack-qc-dispatch"></div>
+        </div>
+    </div>
+</div>
+
+<!-- QC Modal -->
+<div class="modal-overlay" id="qc-modal" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Quality Check</div>
+        <div class="form-group">
+            <label class="form-label">Damaged Items</label>
+            <input type="number" class="form-input" id="qc-damaged" value="0" min="0">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Missing Items</label>
+            <input type="number" class="form-input" id="qc-missing" value="0" min="0">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-textarea" id="qc-notes" placeholder="Quality check notes..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="document.getElementById('qc-modal').style.display='none'">Cancel</button>
+            <button class="btn-success" onclick="submitQC('PASS')">✓ Pass QC</button>
+            <button class="btn-danger" onclick="submitQC('FAIL')">✗ Fail QC</button>
+        </div>
+    </div>
+</div>
+
+<!-- Dispatch Modal -->
+<div class="modal-overlay" id="dispatch-modal" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Dispatch Order</div>
+        <div class="form-group">
+            <label class="form-label">Carrier</label>
+            <select class="form-select" id="dispatch-carrier">
+                <option>FedEx</option><option>UPS</option><option>DHL</option><option>Royal Mail</option><option>DPD</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="document.getElementById('dispatch-modal').style.display='none'">Cancel</button>
+            <button class="btn-success" onclick="dispatchOrder()">🚚 Dispatch</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const orderId = {{ order.id }};
+let orderData = null;
+
+const PRIORITY_BADGE = { CRITICAL: 'badge-critical', HIGH: 'badge-high', NORMAL: 'badge-normal', LOW: 'badge-low' };
+const STATUS_BADGE_MAP = {
+    CREATED: 'badge-CREATED', PRIORITIZED: 'badge-PRIORITIZED', ALLOCATED: 'badge-ALLOCATED',
+    PICKING: 'badge-PICKING', PACKING: 'badge-PACKING', QUALITY_CHECK: 'badge-QUALITY_CHECK',
+    READY_TO_DISPATCH: 'badge-READY_TO_DISPATCH', DISPATCHED: 'badge-DISPATCHED',
+    COMPLETED: 'badge-COMPLETED', EXCEPTION: 'badge-EXCEPTION',
+};
+
+const TIMELINE_STEPS = ['CREATED','PRIORITIZED','ALLOCATED','PICKING','PACKING','QUALITY_CHECK','READY_TO_DISPATCH','DISPATCHED','COMPLETED'];
+const STEP_ICONS = { CREATED:'○', PRIORITIZED:'◈', ALLOCATED:'▦', PICKING:'↻', PACKING:'▣', QUALITY_CHECK:'✓', READY_TO_DISPATCH:'⊙', DISPATCHED:'►', COMPLETED:'●' };
+
+async function loadOrder() {
+    const resp = await fetch('/api/orders/' + orderId);
+    orderData = await resp.json();
+    renderOrder(orderData);
+}
+
+function renderOrder(o) {
+    // Header
+    document.getElementById('order-num').textContent = o.order_number;
+
+    const pb = document.getElementById('order-priority-badge');
+    pb.className = 'badge ' + (PRIORITY_BADGE[o.priority] || 'badge-muted');
+    pb.textContent = o.priority;
+
+    const sb = document.getElementById('order-status-badge');
+    sb.className = 'badge ' + (STATUS_BADGE_MAP[o.status] || 'badge-muted');
+    sb.textContent = o.status.replace(/_/g, ' ');
+
+    document.getElementById('order-customer').textContent = o.customer_name + ' · ' + o.customer_type +
+        (o.hours_until_deadline !== undefined ? ` · Deadline in ${o.hours_until_deadline}h` : '');
+
+    // Priority reason
+    document.getElementById('priority-reason').textContent = o.priority_reason || 'No priority reason recorded.';
+
+    // Timeline
+    renderTimeline(o);
+
+    // Action buttons
+    renderActions(o);
+
+    // Items
+    renderItems(o.items);
+
+    // Allocations
+    renderAllocations(o.allocations);
+
+    // Pick tasks
+    renderPickTasks(o.pick_tasks);
+
+    // Pack / QC / Dispatch
+    renderPackQcDispatch(o);
+
+    // Exceptions
+    if (o.exceptions && o.exceptions.filter(e => e.status !== 'RESOLVED').length > 0) {
+        const section = document.getElementById('exceptions-section');
+        section.style.display = 'block';
+        const open = o.exceptions.filter(e => e.status !== 'RESOLVED');
+        document.getElementById('exceptions-list').innerHTML = open.map(e => `
+            <div class="exception-card exc-card-${e.severity}" style="margin-bottom:10px">
+                <div class="exc-header">
+                    <div class="exc-title-row">
+                        <span class="badge badge-${e.severity.toLowerCase()}">${e.severity}</span>
+                        <span class="exc-type">${e.exception_type.replace(/_/g,' ')}</span>
+                    </div>
+                    <span class="badge badge-muted">${e.status}</span>
+                </div>
+                <div class="exc-desc">${e.description}</div>
+                <div class="recommendation-box">
+                    <div class="rec-label">Recommended Action</div>
+                    <div class="rec-text">${e.recommended_action}</div>
+                </div>
+                <button class="btn-sm btn-primary" onclick="applyRec(${e.id})">Apply Recommendation</button>
+                <a href="/exceptions" class="btn-sm btn-secondary" style="margin-left:8px">View All →</a>
+            </div>
+        `).join('');
+    }
+}
+
+function renderTimeline(o) {
+    const tl = document.getElementById('order-timeline');
+    const currentStatus = o.status;
+    const isException = currentStatus === 'EXCEPTION';
+    const currentIdx = TIMELINE_STEPS.indexOf(currentStatus);
+
+    tl.innerHTML = TIMELINE_STEPS.map((s, i) => {
+        let state = 'pending';
+        if (i < currentIdx) state = 'done';
+        else if (i === currentIdx) state = 'current';
+        if (isException && i === Math.max(0, currentIdx - 1)) state = 'exception';
+
+        const connector = i < TIMELINE_STEPS.length - 1 ?
+            `<div class="timeline-connector ${state === 'done' ? 'done' : ''}"></div>` : '';
+        return `
+            <div class="timeline-step-wrap">
+                <div class="timeline-step ${state}">
+                    <div class="timeline-circle">${state === 'done' ? '✓' : (state === 'exception' ? '!' : (STEP_ICONS[s] || '○'))}</div>
+                    <div class="timeline-label">${s.replace(/_/g, ' ')}</div>
+                </div>
+                ${connector}
+            </div>
+        `;
+    }).join('');
+}
+
+function renderActions(o) {
+    const container = document.getElementById('order-actions');
+    let html = '';
+
+    if (['CREATED','PRIORITIZED'].includes(o.status)) {
+        html += `<button class="btn-primary" onclick="allocateOrder()">📦 Allocate Inventory</button>`;
+    } else if (o.status === 'ALLOCATED') {
+        html += `<button class="btn-primary" onclick="startPicking()">↻ Start Picking</button>`;
+    } else if (o.status === 'PICKING') {
+        html += `<button class="btn-success" onclick="completePicking()">✓ Complete Picking</button>`;
+    } else if (o.status === 'PACKING') {
+        html += `<button class="btn-success" onclick="completePacking()">✓ Complete Packing</button>`;
+    } else if (o.status === 'QUALITY_CHECK') {
+        html += `<button class="btn-primary" onclick="document.getElementById('qc-modal').style.display='flex'">🔍 Run QC</button>`;
+    } else if (o.status === 'READY_TO_DISPATCH') {
+        html += `<button class="btn-success" onclick="document.getElementById('dispatch-modal').style.display='flex'">🚚 Dispatch Order</button>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderItems(items) {
+    const tbody = document.getElementById('items-tbody');
+    if (!items || items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="padding:20px;text-align:center">No items</td></tr>';
+        return;
+    }
+    tbody.innerHTML = items.map(item => `
+        <tr>
+            <td class="text-mono">${item.product_sku || '—'}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <img src="${item.product_image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'}" class="product-thumb" alt="${item.product_name}" onerror="this.src='https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'">
+                    <span style="font-weight:600">${item.product_name || '—'}</span>
+                </div>
+            </td>
+            <td><strong>${item.quantity}</strong></td>
+            <td><span style="color:${item.allocated_quantity >= item.quantity ? 'var(--success)' : 'var(--warning)'}">${item.allocated_quantity}</span></td>
+            <td>${item.total_available}</td>
+            <td>${item.shortage > 0 ? `<span class="text-danger">-${item.shortage}</span>` : '<span class="text-success">✓</span>'}</td>
+        </tr>
+    `).join('');
+}
+
+function renderAllocations(allocs) {
+    const el = document.getElementById('allocations-list');
+    if (!allocs || allocs.length === 0) { el.innerHTML = '<span class="text-muted">No allocations yet</span>'; return; }
+    el.innerHTML = allocs.map(a => `
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between">
+                <span class="text-mono">${a.product_id}</span>
+                <span class="badge badge-${a.status === 'ALLOCATED' ? 'success' : 'warning'}" style="font-size:9px">${a.status}</span>
+            </div>
+            <div style="color:var(--text-muted);font-size:11px">${a.allocated_quantity}/${a.requested_quantity} units · ${a.reason || ''}</div>
+        </div>
+    `).join('');
+}
+
+function renderPickTasks(tasks) {
+    const el = document.getElementById('pick-tasks-list');
+    if (!tasks || tasks.length === 0) { el.innerHTML = '<span class="text-muted">No pick tasks yet</span>'; return; }
+    el.innerHTML = tasks.map(t => `
+        <div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--accent);font-weight:700;min-width:20px">#${t.sequence}</span>
+            <span style="flex:1">${t.zone}-${t.bin_location}</span>
+            <span style="color:var(--text-muted)">${t.quantity}u</span>
+            <span class="badge badge-${t.status === 'COMPLETED' ? 'success' : 'warning'}" style="font-size:9px">${t.status}</span>
+        </div>
+    `).join('');
+}
+
+function renderPackQcDispatch(o) {
+    const el = document.getElementById('pack-qc-dispatch');
+    let html = '';
+
+    if (o.pack_tasks && o.pack_tasks.length > 0) {
+        const pt = o.pack_tasks[0];
+        html += `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">PACKING</div>
+            <div>${pt.packing_station} · ${pt.worker_name}</div>
+            <span class="badge badge-${pt.status === 'COMPLETED' ? 'success' : 'warning'}" style="font-size:9px">${pt.status}</span>
+        </div>`;
+    }
+
+    if (o.quality_checks && o.quality_checks.length > 0) {
+        const qc = o.quality_checks[0];
+        html += `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">QUALITY CHECK</div>
+            <span class="badge badge-${qc.status === 'PASSED' ? 'success' : qc.status === 'FAILED' ? 'danger' : 'muted'}">${qc.status}</span>
+            ${qc.damaged_items > 0 ? `<span class="text-danger" style="font-size:12px;margin-left:8px">${qc.damaged_items} damaged</span>` : ''}
+        </div>`;
+    }
+
+    if (o.dispatch) {
+        html += `<div style="padding:8px 0">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">DISPATCH</div>
+            <div>${o.dispatch.carrier} · <span class="text-mono">${o.dispatch.tracking_number}</span></div>
+            <span class="badge badge-success" style="font-size:9px">${o.dispatch.status}</span>
+        </div>`;
+    }
+
+    el.innerHTML = html || '<span class="text-muted">Not started yet</span>';
+}
+
+async function allocateOrder() {
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '⏳ Allocating...';
+    try {
+        const resp = await fetch('/api/orders/' + orderId + '/allocate', {method:'POST', headers:{'Content-Type':'application/json'}});
+        const data = await resp.json();
+        showToast('✅ ' + (data.message || 'Allocation complete'), 'success');
+        loadOrder();
+    } catch(e) { showToast('Allocation failed', 'error'); btn.disabled = false; btn.textContent = '📦 Allocate Inventory'; }
+}
+
+async function startPicking() {
+    const resp = await fetch('/api/orders/' + orderId + '/pick', {method:'POST'});
+    const data = await resp.json();
+    showToast('✅ Picking started. ' + (data.pick_tasks?.length || 0) + ' tasks created.', 'success');
+    loadOrder();
+}
+
+async function completePicking() {
+    const resp = await fetch('/api/orders/' + orderId + '/complete-picking', {method:'POST'});
+    const data = await resp.json();
+    showToast('✅ ' + data.message, 'success');
+    loadOrder();
+}
+
+async function completePacking() {
+    const resp = await fetch('/api/orders/' + orderId + '/complete-packing', {method:'POST'});
+    const data = await resp.json();
+    showToast('✅ ' + data.message, 'success');
+    loadOrder();
+}
+
+async function submitQC(result) {
+    const data = {
+        damaged_items: parseInt(document.getElementById('qc-damaged').value) || 0,
+        missing_items: parseInt(document.getElementById('qc-missing').value) || 0,
+        notes: document.getElementById('qc-notes').value,
+        checked_by: 'QC Inspector',
+    };
+    if (result === 'FAIL') { data.damaged_items = Math.max(1, data.damaged_items); }
+    document.getElementById('qc-modal').style.display = 'none';
+    const resp = await fetch('/api/orders/' + orderId + '/quality-check', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    const res = await resp.json();
+    showToast((res.qc_status === 'PASSED' ? '✅' : '❌') + ' ' + res.message, res.qc_status === 'PASSED' ? 'success' : 'error');
+    loadOrder();
+}
+
+async function dispatchOrder() {
+    const carrier = document.getElementById('dispatch-carrier').value;
+    document.getElementById('dispatch-modal').style.display = 'none';
+    const resp = await fetch('/api/orders/' + orderId + '/dispatch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({carrier})});
+    const data = await resp.json();
+    showToast('🚚 ' + data.message, 'success');
+    loadOrder();
+}
+
+async function applyRec(excId) {
+    if (!confirm('Apply the recommended action for this exception?')) return;
+    const resp = await fetch('/api/exceptions/' + excId + '/apply-recommendation', {method:'POST'});
+    const data = await resp.json();
+    showToast('✅ ' + (data.message || 'Recommendation applied'), 'success');
+    loadOrder();
+}
+
+loadOrder();
+</script>
+{% endblock %}

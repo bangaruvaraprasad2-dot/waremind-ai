@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}AI Copilot{% endblock %}
+{% block breadcrumb %}AI Copilot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">✦ AI Warehouse Copilot</h1>
+        <p class="page-subtitle">Ask questions about your warehouse — powered by live database intelligence</p>
+    </div>
+    <div class="page-actions">
+        <span style="font-size:11px;color:var(--success);background:var(--success-bg);padding:5px 10px;border-radius:20px;border:1px solid rgba(16,185,129,0.2)">● Rule-based AI Active</span>
+    </div>
+</div>
+
+<div class="copilot-layout">
+    <!-- Messages -->
+    <div class="chat-messages" id="chat-messages">
+        <!-- Welcome message injected by JS -->
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+        <div class="quick-actions">
+            <button class="quick-btn" onclick="sendQuick('Which orders are at risk?')">🚨 Orders at risk</button>
+            <button class="quick-btn" onclick="sendQuick('What products need replenishment?')">📦 Replenishment status</button>
+            <button class="quick-btn" onclick="sendQuick('Show me the warehouse bottleneck')">🚧 Bottleneck analysis</button>
+            <button class="quick-btn" onclick="sendQuick('Give me today summary')">📊 Today summary</button>
+            <button class="quick-btn" onclick="sendQuick('Show all open exceptions')">⚡ Active exceptions</button>
+            <button class="quick-btn" onclick="sendQuick('Dispatch status')">🚚 Dispatch status</button>
+            <button class="quick-btn" onclick="sendQuick('Inventory overview')">▦ Inventory overview</button>
+            <button class="quick-btn" onclick="sendQuick('help')">❓ Help</button>
+        </div>
+        <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-input" placeholder="Ask about orders, inventory, exceptions, performance..." rows="1"
+                onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="send-btn" onclick="sendMessage()" id="send-btn" title="Send">➤</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chatMessages = document.getElementById('chat-messages');
+
+function formatMarkdown(text) {
+    return text
+        .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" class="copilot-thumb" alt="$1" title="$1" onerror="this.src=\'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80\'">')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^• (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+}
+
+function renderRichCards(data) {
+    if (!data) return '';
+    let cardsHtml = '';
+
+    // 1. Replenishment Recommendations Product Cards
+    if (data.recommendations && data.recommendations.length > 0) {
+        cardsHtml += `
+            <div class="copilot-cards-grid">
+                ${data.recommendations.map(r => `
+                    <div class="copilot-prod-card card-risk-${r.risk.toLowerCase()}">
+                        <img src="${r.image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'}" class="cpc-img" alt="${r.name}" onerror="this.src='https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'">
+                        <div class="cpc-info">
+                            <div class="cpc-top">
+                                <span class="cpc-name">${r.name}</span>
+                                <span class="badge ${r.risk === 'CRITICAL' ? 'badge-danger' : r.risk === 'HIGH' ? 'badge-warning' : 'badge-info'}">${r.risk}</span>
+                            </div>
+                            <div class="cpc-sub">SKU: <code>${r.sku}</code> · Supplier: ${r.supplier}</div>
+                            <div class="cpc-stats">
+                                <span>Stock: <strong class="text-danger">${r.available_stock}</strong> / Reorder: ${r.reorder_level}</span>
+                                <span class="text-success">+${r.recommended_quantity} rec.</span>
+                            </div>
+                        </div>
+                        <a href="/inventory?search=${encodeURIComponent(r.sku)}" class="btn-sm btn-secondary cpc-btn">📦 Restock</a>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // 2. At Risk Orders Cards
+    if (data.at_risk_orders && data.at_risk_orders.length > 0) {
+        cardsHtml += `
+            <div class="copilot-orders-grid">
+                ${data.at_risk_orders.map(o => `
+                    <div class="copilot-order-card">
+                        <div class="coc-header">
+                            <div>
+                                <span class="coc-num">${o.order_number}</span>
+                                <span class="badge badge-critical">${o.priority} (${o.priority_score})</span>
+                            </div>
+                            <span class="badge badge-warning">⏰ ${o.hours_left}h left</span>
+                        </div>
+                        <div class="coc-customer">${o.customer_name} · <span class="text-muted">${o.status}</span></div>
+                        <div class="coc-items-preview">
+                            ${o.items.map(it => `
+                                <div class="coc-item-thumb-box" title="${it.name}">
+                                    <img src="${it.image_url}" class="coc-item-img" alt="${it.name}">
+                                    <span class="coc-item-qty">x${it.quantity}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="coc-footer">
+                            <a href="/orders/${o.id}" class="btn-sm btn-primary">View Order →</a>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // 3. Single Order Items Preview Card
+    if (data.items && data.items.length > 0 && data.order_number) {
+        cardsHtml += `
+            <div class="copilot-items-card">
+                <div class="cic-header">📦 Order Items Preview (${data.order_number})</div>
+                <div class="cic-grid">
+                    ${data.items.map(it => `
+                        <div class="cic-item">
+                            <img src="${it.product_image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'}" class="cic-img" alt="${it.product_name}">
+                            <div class="cic-info">
+                                <div class="cic-name">${it.product_name || 'Product'}</div>
+                                <div class="cic-sub">Required: <strong>${it.quantity}</strong> · Allocated: <strong class="text-success">${it.allocated_quantity}</strong></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    return cardsHtml;
+}
+
+function appendMessage(role, content, type = 'info', extraData = null) {
+    const div = document.createElement('div');
+    div.className = `chat-msg ${role}`;
+
+    const avatarEmoji = role === 'user' ? 'WM' : '✦';
+    const formattedContent = role === 'assistant' ? formatMarkdown(content) : escapeHtml(content);
+    const richCardsHtml = role === 'assistant' && extraData ? renderRichCards(extraData) : '';
+
+    div.innerHTML = `
+        <div class="chat-avatar">${avatarEmoji}</div>
+        <div class="chat-bubble">
+            ${formattedContent}
+            ${richCardsHtml}
+        </div>
+    `;
+
+    chatMessages.appendChild(div);
+    scrollToBottom();
+    return div;
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function appendTyping() {
+    const div = document.createElement('div');
+    div.className = 'chat-msg assistant';
+    div.id = 'typing-indicator';
+    div.innerHTML = `
+        <div class="chat-avatar">✦</div>
+        <div class="chat-bubble">
+            <div class="chat-typing">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(div);
+    scrollToBottom();
+    return div;
+}
+
+function scrollToBottom() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+
+    appendMessage('user', message);
+
+    const typingEl = appendTyping();
+
+    try {
+        const resp = await fetch('/api/copilot', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message}),
+        });
+        const data = await resp.json();
+        typingEl.remove();
+
+        if (data.error) {
+            appendMessage('assistant', '❌ Error: ' + data.error, 'error');
+        } else {
+            appendMessage('assistant', data.message, data.type, data.data);
+        }
+    } catch(e) {
+        typingEl.remove();
+        appendMessage('assistant', '❌ Failed to connect to Copilot service. Please check the server.', 'error');
+    }
+
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+}
+
+function sendQuick(msg) {
+    document.getElementById('chat-input').value = msg;
+    sendMessage();
+}
+
+function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+}
+
+function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// Welcome message
+function showWelcome() {
+    appendMessage('assistant', `**Welcome to WareMind AI Copilot** ✦
+
+I'm your intelligent warehouse assistant, grounded in live database data.
+
+Here's what I can help you with:
+• **Order risk analysis** — identify at-risk orders with deadline tracking
+• **Replenishment intelligence** — products that need restocking
+• **Bottleneck detection** — identify and resolve operational slowdowns
+• **Exception management** — summarize open warehouse issues
+• **Inventory overview** — real-time stock status
+• **Order tracking** — status of any specific order (e.g. "status of ORD-5001")
+
+Use the quick action buttons below or type your question. I never hallucinate — all responses come from live warehouse data.
+
+*Try asking: "Which orders are at risk?"*`, 'info');
+}
+
+showWelcome();
+document.getElementById('chat-input').focus();
+</script>
+{% endblock %}

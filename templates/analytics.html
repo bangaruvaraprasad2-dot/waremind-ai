@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block breadcrumb %}Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Operational Analytics</h1>
+        <p class="page-subtitle">Performance metrics and warehouse intelligence insights</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-ghost" onclick="loadAnalytics()">↺ Refresh</button>
+    </div>
+</div>
+
+<!-- Metrics -->
+<div class="metrics-grid" id="metrics-grid">
+    <div class="metric-card"><div class="metric-label">Loading...</div><div class="metric-value" style="font-size:18px;color:var(--text-muted)">—</div></div>
+</div>
+
+<!-- Bottleneck -->
+<div id="bottleneck-section" style="display:none;margin-bottom:24px">
+    <div class="section-header">
+        <h2 class="section-title">🚧 Bottleneck Analysis</h2>
+    </div>
+    <div class="bottleneck-card">
+        <div class="bottleneck-label">Current Bottleneck</div>
+        <div class="bottleneck-stage" id="bottleneck-stage-label">—</div>
+        <div class="bottleneck-rec" id="bottleneck-rec">—</div>
+    </div>
+    <div class="stage-bars" id="stage-bars"></div>
+</div>
+
+<!-- Charts -->
+<div class="charts-row">
+    <div class="chart-card chart-wide">
+        <div class="chart-header"><div><div class="chart-title">Daily Orders (14 Days)</div><div class="chart-sub">Orders created per day</div></div></div>
+        <div class="chart-body"><canvas id="dailyChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">Exception Trend (7 Days)</div><div class="chart-sub">New exceptions per day</div></div></div>
+        <div class="chart-body"><canvas id="excTrendChart" height="200"></canvas></div>
+    </div>
+</div>
+
+<div class="charts-row">
+    <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">Products by Category</div></div></div>
+        <div class="chart-body"><canvas id="catChart" height="260"></canvas></div>
+    </div>
+    <div class="chart-card chart-wide">
+        <div class="chart-header"><div><div class="chart-title">Orders by Priority — Total vs Completed</div></div></div>
+        <div class="chart-body"><canvas id="priorityStatsChart" height="260"></canvas></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let analyticsCharts = {};
+
+async function loadAnalytics() {
+    const resp = await fetch('/api/analytics');
+    const data = await resp.json();
+    renderMetrics(data.summary);
+    renderBottleneck(data.bottleneck);
+    renderCharts(data.charts);
+}
+
+function renderMetrics(s) {
+    const good = v => `metric-good`;
+    const warn = v => v > 10 ? 'metric-bad' : v > 5 ? 'metric-warn' : 'metric-good';
+
+    document.getElementById('metrics-grid').innerHTML = `
+        <div class="metric-card">
+            <div class="metric-label">Fulfillment Rate</div>
+            <div class="metric-value ${s.fulfillment_rate >= 80 ? 'metric-good' : s.fulfillment_rate >= 60 ? 'metric-warn' : 'metric-bad'}">${s.fulfillment_rate}<span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">On-Time Dispatch</div>
+            <div class="metric-value ${s.on_time_rate >= 90 ? 'metric-good' : s.on_time_rate >= 70 ? 'metric-warn' : 'metric-bad'}">${s.on_time_rate}<span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Exception Rate</div>
+            <div class="metric-value ${s.exception_rate <= 5 ? 'metric-good' : s.exception_rate <= 15 ? 'metric-warn' : 'metric-bad'}">${s.exception_rate}<span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Avg Pick Time</div>
+            <div class="metric-value ${s.avg_pick_time <= 15 ? 'metric-good' : s.avg_pick_time <= 30 ? 'metric-warn' : 'metric-bad'}">${s.avg_pick_time || '—'}<span class="metric-unit">min</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Avg Pack Time</div>
+            <div class="metric-value ${s.avg_pack_time <= 20 ? 'metric-good' : s.avg_pack_time <= 40 ? 'metric-warn' : 'metric-bad'}">${s.avg_pack_time || '—'}<span class="metric-unit">min</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Damage Rate</div>
+            <div class="metric-value ${s.damage_rate <= 1 ? 'metric-good' : s.damage_rate <= 3 ? 'metric-warn' : 'metric-bad'}">${s.damage_rate}<span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Stockout Rate</div>
+            <div class="metric-value ${s.stockout_rate <= 2 ? 'metric-good' : s.stockout_rate <= 8 ? 'metric-warn' : 'metric-bad'}">${s.stockout_rate}<span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Total Inventory</div>
+            <div class="metric-value metric-good">${s.total_units.toLocaleString()}<span class="metric-unit"> u</span></div>
+        </div>
+    `;
+}
+
+function renderBottleneck(b) {
+    if (!b) return;
+    const section = document.getElementById('bottleneck-section');
+    section.style.display = 'block';
+    document.getElementById('bottleneck-stage-label').textContent = b.bottleneck_label + ' (' + b.avg_minutes + ' min avg)';
+    document.getElementById('bottleneck-rec').textContent = b.recommendation;
+
+    const maxTime = Math.max(...Object.values(b.stages).map(s => s.avg_minutes));
+    const colors = { PICKING: '#8b5cf6', PACKING: '#f59e0b', QUALITY_CHECK: '#3b82f6' };
+    document.getElementById('stage-bars').innerHTML = Object.entries(b.stages).map(([stage, info]) => `
+        <div class="stage-bar-row">
+            <div class="stage-bar-label">${info.label}</div>
+            <div class="stage-bar-track">
+                <div class="stage-bar-fill" style="width:${Math.min(100,(info.avg_minutes/maxTime)*100)}%;background:${stage === b.bottleneck_stage ? 'var(--danger)' : colors[stage] || 'var(--accent)'}"></div>
+            </div>
+            <div class="stage-bar-val">${info.avg_minutes} min</div>
+        </div>
+    `).join('');
+}
+
+function renderCharts(c) {
+    // Daily orders
+    const dCtx = document.getElementById('dailyChart').getContext('2d');
+    if (analyticsCharts.daily) analyticsCharts.daily.destroy();
+    analyticsCharts.daily = new Chart(dCtx, {
+        type: 'line',
+        data: {
+            labels: c.daily_orders.map(d => d.date),
+            datasets: [{
+                label: 'Orders Created', data: c.daily_orders.map(d => d.orders),
+                borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4,
+                pointBackgroundColor: '#6366f1', pointRadius: 4,
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } } } }
+    });
+
+    // Exception trend
+    const eCtx = document.getElementById('excTrendChart').getContext('2d');
+    if (analyticsCharts.excTrend) analyticsCharts.excTrend.destroy();
+    analyticsCharts.excTrend = new Chart(eCtx, {
+        type: 'bar',
+        data: {
+            labels: c.exception_trend.map(d => d.date),
+            datasets: [{
+                label: 'Exceptions', data: c.exception_trend.map(d => d.count),
+                backgroundColor: '#ef4444', borderRadius: 4,
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } } } }
+    });
+
+    // Category breakdown
+    const catCtx = document.getElementById('catChart').getContext('2d');
+    if (analyticsCharts.cat) analyticsCharts.cat.destroy();
+    const catColors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#14b8a6','#ef4444'];
+    analyticsCharts.cat = new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: c.category_breakdown.map(d => d.category),
+            datasets: [{ data: c.category_breakdown.map(d => d.count), backgroundColor: catColors, borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+            plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 }, padding: 10 } } } }
+    });
+
+    // Priority stats
+    const pCtx = document.getElementById('priorityStatsChart').getContext('2d');
+    if (analyticsCharts.priority) analyticsCharts.priority.destroy();
+    const priorities = Object.keys(c.priority_stats);
+    analyticsCharts.priority = new Chart(pCtx, {
+        type: 'bar',
+        data: {
+            labels: priorities,
+            datasets: [
+                { label: 'Total Orders', data: priorities.map(p => c.priority_stats[p].total), backgroundColor: 'rgba(99,102,241,0.6)', borderRadius: 4 },
+                { label: 'Completed', data: priorities.map(p => c.priority_stats[p].completed), backgroundColor: 'rgba(16,185,129,0.6)', borderRadius: 4 },
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } } } }
+    });
+}
+
+loadAnalytics();
+</script>
+{% endblock %}

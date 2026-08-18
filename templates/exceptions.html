@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Exception Center{% endblock %}
+{% block breadcrumb %}Exception Center{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Exception Center</h1>
+        <p class="page-subtitle">Detect, analyze, and resolve warehouse operational issues</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-secondary" onclick="loadExceptions()">↺ Refresh</button>
+        <button class="btn-warning" onclick="scanExceptions()">🔍 Scan for Exceptions</button>
+    </div>
+</div>
+
+<!-- Summary KPIs -->
+<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px" id="exc-summary">
+    <div class="kpi-card kpi-skeleton"></div>
+    <div class="kpi-card kpi-skeleton"></div>
+    <div class="kpi-card kpi-skeleton"></div>
+    <div class="kpi-card kpi-skeleton"></div>
+</div>
+
+<!-- Filters -->
+<div class="search-filter-bar">
+    <select class="filter-select" id="filter-severity" onchange="loadExceptions()">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">🔴 Critical</option>
+        <option value="HIGH">🟠 High</option>
+        <option value="MEDIUM">🟡 Medium</option>
+        <option value="LOW">⬜ Low</option>
+    </select>
+    <select class="filter-select" id="filter-status" onchange="loadExceptions()">
+        <option value="">All Statuses</option>
+        <option value="OPEN">Open</option>
+        <option value="IN_PROGRESS">In Progress</option>
+        <option value="RESOLVED">Resolved</option>
+        <option value="DISMISSED">Dismissed</option>
+    </select>
+    <select class="filter-select" id="filter-type" onchange="loadExceptions()">
+        <option value="">All Types</option>
+        <option value="LOW_STOCK">Low Stock</option>
+        <option value="OUT_OF_STOCK">Out of Stock</option>
+        <option value="DAMAGED_ITEM">Damaged Item</option>
+        <option value="MISSING_ITEM">Missing Item</option>
+        <option value="PICKING_DELAY">Picking Delay</option>
+        <option value="PACKING_DELAY">Packing Delay</option>
+        <option value="QUALITY_FAILURE">Quality Failure</option>
+        <option value="ALLOCATION_CONFLICT">Allocation Conflict</option>
+    </select>
+</div>
+
+<!-- Exception Cards -->
+<div id="exceptions-container">
+    <div class="activity-skeleton" style="height:120px;margin-bottom:12px;border-radius:10px"></div>
+    <div class="activity-skeleton" style="height:120px;margin-bottom:12px;border-radius:10px"></div>
+    <div class="activity-skeleton" style="height:120px;border-radius:10px"></div>
+</div>
+
+<!-- Resolve Modal -->
+<div class="modal-overlay" id="resolve-modal" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Resolve Exception Manually</div>
+        <input type="hidden" id="resolve-exc-id">
+        <div class="form-group">
+            <label class="form-label">Resolution Notes</label>
+            <textarea class="form-textarea" id="resolve-notes" placeholder="Describe how this exception was resolved..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="document.getElementById('resolve-modal').style.display='none'">Cancel</button>
+            <button class="btn-success" onclick="submitResolve()">✓ Mark Resolved</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SEV_COLOR = { CRITICAL: 'var(--danger)', HIGH: 'var(--warning)', MEDIUM: 'var(--info)', LOW: 'var(--text-muted)' };
+const SEV_BADGE = { CRITICAL: 'badge-critical', HIGH: 'badge-high', MEDIUM: 'badge-info', LOW: 'badge-low' };
+const TYPE_ICON = {
+    LOW_STOCK: '📦', OUT_OF_STOCK: '🚫', DAMAGED_ITEM: '💔', MISSING_ITEM: '❓',
+    PICKING_DELAY: '⏱', PACKING_DELAY: '⏳', QUALITY_FAILURE: '❌', ALLOCATION_CONFLICT: '⚡'
+};
+
+async function loadExceptions() {
+    const severity = document.getElementById('filter-severity').value;
+    const status = document.getElementById('filter-status').value;
+    const type = document.getElementById('filter-type').value;
+
+    const params = new URLSearchParams();
+    if (severity) params.set('severity', severity);
+    if (status) params.set('status', status);
+    if (type) params.set('type', type);
+
+    const resp = await fetch('/api/exceptions?' + params);
+    const data = await resp.json();
+
+    // Summary
+    const s = data.summary;
+    document.getElementById('exc-summary').innerHTML = `
+        <div class="kpi-card kpi-danger"><div class="kpi-icon">🔴</div><div class="kpi-value">${s.critical}</div><div class="kpi-label">Critical</div></div>
+        <div class="kpi-card kpi-warning"><div class="kpi-icon">🟠</div><div class="kpi-value">${s.high}</div><div class="kpi-label">High</div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-icon">🟡</div><div class="kpi-value">${s.medium}</div><div class="kpi-label">Medium</div></div>
+        <div class="kpi-card kpi-success"><div class="kpi-icon">✅</div><div class="kpi-value">${s.resolved_today}</div><div class="kpi-label">Resolved Today</div></div>
+    `;
+
+    // Cards
+    const container = document.getElementById('exceptions-container');
+    if (!data.exceptions || data.exceptions.length === 0) {
+        container.innerHTML = `<div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <div class="empty-state-title">No exceptions found</div>
+            <div class="empty-state-sub">All operations are running smoothly</div>
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = data.exceptions.map(e => {
+        const isResolved = e.status === 'RESOLVED';
+        return `
+        <div class="exception-card exc-card-${e.severity}" style="${isResolved ? 'opacity:0.6' : ''}">
+            <div class="exc-header">
+                <div class="exc-title-row">
+                    <span style="font-size:18px">${TYPE_ICON[e.exception_type] || '⚠️'}</span>
+                    <span class="badge ${SEV_BADGE[e.severity]}">${e.severity}</span>
+                    <span class="exc-type">${e.exception_type.replace(/_/g,' ')}</span>
+                    ${e.order_number ? `<span class="text-mono" style="color:var(--accent-hover)">${e.order_number}</span>` : ''}
+                    ${e.product_name ? `
+                        <div style="display:inline-flex;align-items:center;gap:6px;margin-left:6px;">
+                            <img src="${e.product_image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'}" class="product-thumb" alt="${e.product_name}" onerror="this.src='https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'">
+                            <span style="color:var(--text-muted);font-size:12px">${e.product_name}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="badge badge-muted">${e.status}</span>
+                    <span class="text-muted" style="font-size:11px">${e.created_at ? e.created_at.substring(11,16) + ' UTC' : ''}</span>
+                </div>
+            </div>
+            <div class="exc-desc">${e.description}</div>
+            ${!isResolved ? `
+            <div class="recommendation-box">
+                <div class="rec-label">💡 Recommended Action</div>
+                <div class="rec-text">${e.recommended_action}</div>
+            </div>
+            ` : `<div style="padding:10px;background:var(--success-bg);border-radius:6px;margin-bottom:12px;font-size:12px;color:var(--success)">
+                ✅ Resolution: ${e.resolution || 'Resolved'}
+            </div>`}
+            <div class="exc-footer">
+                ${!isResolved ? `
+                <button class="btn-sm btn-primary" onclick="applyRec(${e.id}, this)">⚡ Apply Recommendation</button>
+                <button class="btn-sm btn-secondary" onclick="openResolve(${e.id})">✓ Resolve Manually</button>
+                ${e.order_id ? `<a href="/orders/${e.order_id}" class="btn-sm btn-secondary">View Order →</a>` : ''}
+                ` : `<span class="text-muted" style="font-size:12px">Resolved at ${e.resolved_at ? e.resolved_at.substring(0,16) : '—'}</span>`}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function applyRec(excId, btn) {
+    if (!confirm('Apply the recommended action for this exception? This will update inventory and order records.')) return;
+    btn.disabled = true; btn.textContent = '⏳ Applying...';
+    const resp = await fetch('/api/exceptions/' + excId + '/apply-recommendation', {method:'POST'});
+    const data = await resp.json();
+    if (data.error) {
+        showToast('Error: ' + data.error, 'error');
+        btn.disabled = false; btn.textContent = '⚡ Apply Recommendation';
+    } else {
+        showToast('✅ ' + data.message, 'success');
+        loadExceptions();
+    }
+}
+
+function openResolve(excId) {
+    document.getElementById('resolve-exc-id').value = excId;
+    document.getElementById('resolve-notes').value = '';
+    document.getElementById('resolve-modal').style.display = 'flex';
+}
+
+async function submitResolve() {
+    const excId = document.getElementById('resolve-exc-id').value;
+    const resolution = document.getElementById('resolve-notes').value;
+    const resp = await fetch('/api/exceptions/' + excId + '/resolve', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({resolution})
+    });
+    const data = await resp.json();
+    document.getElementById('resolve-modal').style.display = 'none';
+    showToast('✅ Exception resolved', 'success');
+    loadExceptions();
+}
+
+async function scanExceptions() {
+    const resp = await fetch('/api/exceptions/scan', {method:'POST'});
+    const data = await resp.json();
+    if (data.new_exceptions > 0) {
+        showToast(`⚡ Found ${data.new_exceptions} new exception(s)`, 'warning');
+    } else {
+        showToast('✅ Scan complete. No new exceptions detected.', 'success');
+    }
+    loadExceptions();
+}
+
+loadExceptions();
+</script>
+{% endblock %}

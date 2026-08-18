@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WareMind AI — Smart Warehouse Operations & Order Fulfillment Intelligence Platform">
+    <title>WareMind AI — Autonomous Warehouse Operations & Decision Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Standalone Landing Page Styles */
+        body.landing-page {
+            background: #090b10;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .landing-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 72px;
+            background: rgba(9, 11, 16, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+
+        .landing-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .landing-brand-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: white;
+            box-shadow: 0 0 20px rgba(99,102,241,0.4);
+        }
+
+        .landing-brand-name {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+
+        .landing-nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .landing-nav-link {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .landing-nav-link:hover { color: #f1f5f9; }
+
+        .btn-launch-header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            text-decoration: none;
+            box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-launch-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(99,102,241,0.5);
+            color: white;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            padding: 160px 20px 100px;
+            max-width: 1280px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero-glow {
+            position: absolute;
+            top: 80px; left: 50%;
+            transform: translateX(-50%);
+            width: 600px; height: 350px;
+            background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, rgba(139,92,246,0.1) 40%, rgba(0,0,0,0) 70%);
+            filter: blur(60px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.3);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #818cf8;
+            letter-spacing: 0.05em;
+            margin-bottom: 28px;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            font-size: 56px;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+            margin-bottom: 24px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-title span {
+            background: linear-gradient(135deg, #818cf8, #c084fc, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            max-width: 720px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        .hero-ctas {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        .btn-hero-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 8px 32px rgba(99,102,241,0.4);
+            transition: all 0.25s ease;
+            display: inline-flex; align-items: center; gap: 10px;
+        }
+
+        .btn-hero-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(99,102,241,0.6);
+            color: white;
+        }
+
+        .btn-hero-secondary {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 16px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+
+        .btn-hero-secondary:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Preview Mockup */
+        .hero-preview-wrap {
+            position: relative;
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #111622;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,0.15);
+            text-align: left;
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 16px;
+        }
+
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        .dot-green { background: #10b981; }
+
+        .mockup-title {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #64748b;
+            margin-left: 10px;
+        }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .mockup-card {
+            background: #161c2b;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .mockup-card-val {
+            font-size: 22px;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+
+        .mockup-card-lbl {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        .mockup-decision-banner {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1));
+            border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .mdb-left { display: flex; align-items: center; gap: 14px; }
+        .mdb-icon { font-size: 24px; }
+        .mdb-title { font-size: 13px; font-weight: 700; color: #818cf8; }
+        .mdb-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+        .mdb-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* Stats Counter Section */
+        .stats-section {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: rgba(17, 22, 34, 0.5);
+            padding: 50px 20px;
+        }
+
+        .stats-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            text-align: center;
+        }
+
+        .stat-item-num {
+            font-size: 40px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .stat-item-lbl {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 100px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-tag {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6366f1;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .section-heading {
+            text-align: center;
+            font-size: 38px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+            margin-bottom: 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: #111622;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.25s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(99,102,241,0.4);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 20px rgba(99,102,241,0.1);
+        }
+
+        .feature-icon-box {
+            width: 48px; height: 48px;
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.25);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        /* Decision Process Section */
+        .process-section {
+            background: #0d111a;
+            padding: 90px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .process-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            position: relative;
+        }
+
+        .process-card {
+            background: #161c2b;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .process-step-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6366f1;
+            margin-bottom: 12px;
+        }
+
+        .process-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .process-desc {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 100px 20px;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+            border: 1px solid rgba(99,102,241,0.35);
+            border-radius: 24px;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 16px;
+        }
+
+        .cta-desc {
+            font-size: 16px;
+            color: #94a3b8;
+            margin-bottom: 32px;
+        }
+
+        .landing-footer {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 30px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        @media (max-width: 992px) {
+            .hero-title { font-size: 40px; }
+            .features-grid, .stats-grid, .process-grid { grid-template-columns: repeat(2, 1fr); }
+            .mockup-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .hero-title { font-size: 32px; }
+            .landing-header { padding: 0 20px; }
+            .landing-nav { display: none; }
+            .features-grid, .stats-grid, .process-grid { grid-template-columns: 1fr; }
+            .mockup-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="landing-page">
+
+    <!-- Header / Navigation -->
+    <header class="landing-header">
+        <a href="/" class="landing-brand">
+            <div class="landing-brand-icon">⬡</div>
+            <span class="landing-brand-name">WareMind AI</span>
+        </a>
+        <nav class="landing-nav">
+            <a href="#features" class="landing-nav-link">Decision Engines</a>
+            <a href="#process" class="landing-nav-link">How it Works</a>
+            <a href="#metrics" class="landing-nav-link">Impact Metrics</a>
+            <a href="/copilot" class="landing-nav-link">AI Copilot</a>
+        </nav>
+        <a href="/dashboard" class="btn-launch-header">Launch Control Tower →</a>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-glow"></div>
+        <div class="hero-badge">⚡ NEXT-GEN WAREHOUSE FULFILLMENT INTELLIGENCE</div>
+        <h1 class="hero-title">
+            Don't Just Track Inventory.<br>
+            <span>Solve Fulfillment Bottlenecks in Real-Time.</span>
+        </h1>
+        <p class="hero-subtitle">
+            WareMind AI autonomously detects stock conflicts, prioritizes orders with multi-factor scoring, optimizes picking routes, and delivers 1-click exception resolution.
+        </p>
+
+        <div class="hero-ctas">
+            <a href="/dashboard" class="btn-hero-primary">
+                <span>🚀 Launch Control Tower</span>
+            </a>
+            <a href="/dashboard" onclick="sessionStorage.setItem('openCrisis','1')" class="btn-hero-secondary">
+                <span>🚨 Simulate Crisis Demo</span>
+            </a>
+        </div>
+
+        <!-- Interactive Hero Preview -->
+        <div class="hero-preview-wrap">
+            <div class="mockup-header">
+                <div class="dot dot-red"></div>
+                <div class="dot dot-yellow"></div>
+                <div class="dot dot-green"></div>
+                <span class="mockup-title">WareMind Control Tower — Live Operations Feed</span>
+            </div>
+
+            <div class="mockup-grid">
+                <div class="mockup-card">
+                    <div class="mockup-card-val">35</div>
+                    <div class="mockup-card-lbl">Active Orders</div>
+                </div>
+                <div class="mockup-card">
+                    <div class="mockup-card-val" style="color:#ef4444">5</div>
+                    <div class="mockup-card-lbl">Critical Risk</div>
+                </div>
+                <div class="mockup-card">
+                    <div class="mockup-card-val" style="color:#10b981">99.4%</div>
+                    <div class="mockup-card-lbl">Fulfillment Rate</div>
+                </div>
+                <div class="mockup-card">
+                    <div class="mockup-card-val" style="color:#f59e0b">2</div>
+                    <div class="mockup-card-lbl">Open Shortages</div>
+                </div>
+            </div>
+
+            <div class="mockup-decision-banner">
+                <div class="mdb-left">
+                    <div class="mdb-icon">⚡</div>
+                    <div>
+                        <div class="mdb-title">DECISION ENGINE RECOMMENDATION</div>
+                        <div class="mdb-sub">Critical Order ORD-5001 has deadline in 2h. Reallocated 7 available units from Zone A.</div>
+                    </div>
+                </div>
+                <a href="/dashboard" class="mdb-btn">Apply Recommendation →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Counter Section -->
+    <section class="stats-section" id="metrics">
+        <div class="stats-grid">
+            <div>
+                <div class="stat-item-num">99.4%</div>
+                <div class="stat-item-lbl">On-Time Dispatch Rate</div>
+            </div>
+            <div>
+                <div class="stat-item-num">3.2x</div>
+                <div class="stat-item-lbl">Faster Exception Resolution</div>
+            </div>
+            <div>
+                <div class="stat-item-num">40%</div>
+                <div class="stat-item-lbl">Reduction in Picker Travel Distance</div>
+            </div>
+            <div>
+                <div class="stat-item-num">0</div>
+                <div class="stat-item-lbl">Manual Spreadsheet Reconciliation</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="section-tag">INTELLIGENT ENGINES</div>
+        <h2 class="section-heading">Built with Deterministic Decision Logic</h2>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon-box">🎯</div>
+                <h3 class="feature-title">Smart Priority Engine</h3>
+                <p class="feature-desc">
+                    Calculates order scores using weighted factors (Urgency, Deadline, Customer tier, Age, Order value) to eliminate order starvation.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">📦</div>
+                <h3 class="feature-title">Dynamic Allocation Engine</h3>
+                <p class="feature-desc">
+                    Reserves stock for critical orders, manages partial allocations, prevents duplicate reservations, and tracks damaged inventory.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">⚡</div>
+                <h3 class="feature-title">Auto Exception Resolution</h3>
+                <p class="feature-desc">
+                    Detects stockouts, picking delays, and QC failures instantly. Generates actionable recommendations executable with 1-click.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">🗺️</div>
+                <h3 class="feature-title">Zone Picking Optimization</h3>
+                <p class="feature-desc">
+                    Sequences pick tasks logically across warehouse zones (A → B → C) to minimize picker walking time and eliminate congestion.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">📊</div>
+                <h3 class="feature-title">Bottleneck Labor Re-balancer</h3>
+                <p class="feature-desc">
+                    Monitors operational stage velocity (Picking vs Packing vs QC) and recommends moving workers to eliminate bottlenecks.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">✦</div>
+                <h3 class="feature-title">AI Warehouse Copilot</h3>
+                <p class="feature-desc">
+                    Ask natural language questions about your warehouse. Answers are strictly grounded in live database state without hallucination.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works Section -->
+    <section class="process-section" id="process">
+        <div class="section-tag">CLOSED-LOOP WORKFLOW</div>
+        <h2 class="section-heading">From Problem Detection to Execution</h2>
+
+        <div class="process-grid">
+            <div class="process-card">
+                <div class="process-step-num">STEP 01</div>
+                <h3 class="process-title">1. Detect Issue</h3>
+                <p class="process-desc">Engine detects shortage, picking delay, or QC failure in real-time.</p>
+            </div>
+
+            <div class="process-card">
+                <div class="process-step-num">STEP 02</div>
+                <h3 class="process-title">2. Score & Explain</h3>
+                <p class="process-desc">Priority engine scores order priority and explains the exact reasoning.</p>
+            </div>
+
+            <div class="process-card">
+                <div class="process-step-num">STEP 03</div>
+                <h3 class="process-title">3. Recommend Action</h3>
+                <p class="process-desc">Generates concrete solution (reallocate stock, order restock, assign backup worker).</p>
+            </div>
+
+            <div class="process-card">
+                <div class="process-step-num">STEP 04</div>
+                <h3 class="process-title">4. 1-Click Apply</h3>
+                <p class="process-desc">Warehouse manager applies the recommendation. Database updates automatically.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-box">
+            <h2 class="cta-title">Ready to Experience WareMind AI?</h2>
+            <p class="cta-desc">Launch the Control Tower to explore live order fulfillment, priority engines, and crisis simulation.</p>
+            <a href="/dashboard" class="btn-hero-primary">Launch WareMind Control Tower →</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div>&copy; 2026 WareMind AI Platform. All rights reserved.</div>
+        <div style="display:flex;gap:20px">
+            <a href="/dashboard" style="color:#64748b;text-decoration:none">Control Tower</a>
+            <a href="/orders" style="color:#64748b;text-decoration:none">Orders</a>
+            <a href="/inventory" style="color:#64748b;text-decoration:none">Inventory</a>
+            <a href="/exceptions" style="color:#64748b;text-decoration:none">Exceptions</a>
+            <a href="/copilot" style="color:#64748b;text-decoration:none">AI Copilot</a>
+        </div>
+    </footer>
+
+</body>
+</html>

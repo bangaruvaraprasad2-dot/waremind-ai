@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+{% block breadcrumb %}Orders{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Order Management</h1>
+        <p class="page-subtitle">Full fulfillment pipeline — <span id="order-count">Loading...</span></p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-ghost" onclick="loadOrders()">↺ Refresh</button>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="search-filter-bar">
+    <div class="search-input-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="order-search" placeholder="Search order number or customer..." oninput="debounceLoad()">
+    </div>
+    <select class="filter-select" id="filter-priority" onchange="loadOrders()">
+        <option value="">All Priorities</option>
+        <option value="CRITICAL">🚨 Critical</option>
+        <option value="HIGH">🔶 High</option>
+        <option value="NORMAL">🔷 Normal</option>
+        <option value="LOW">⬜ Low</option>
+    </select>
+    <select class="filter-select" id="filter-status" onchange="loadOrders()">
+        <option value="">All Statuses</option>
+        <option value="CREATED">Created</option>
+        <option value="PRIORITIZED">Prioritized</option>
+        <option value="ALLOCATED">Allocated</option>
+        <option value="PICKING">Picking</option>
+        <option value="PACKING">Packing</option>
+        <option value="QUALITY_CHECK">Quality Check</option>
+        <option value="READY_TO_DISPATCH">Ready to Dispatch</option>
+        <option value="DISPATCHED">Dispatched</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="EXCEPTION">Exception</option>
+    </select>
+</div>
+
+<!-- Table -->
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Items</th>
+                <th>Value</th>
+                <th>Deadline</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="orders-tbody">
+            <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">Loading orders...</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let debounceTimer;
+
+function debounceLoad() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadOrders, 300);
+}
+
+const PRIORITY_BADGE = {
+    CRITICAL: 'badge-critical', HIGH: 'badge-high', NORMAL: 'badge-normal', LOW: 'badge-low'
+};
+
+const STATUS_BADGE = {
+    CREATED: 'badge-CREATED', PRIORITIZED: 'badge-PRIORITIZED', ALLOCATED: 'badge-ALLOCATED',
+    PICKING: 'badge-PICKING', PACKING: 'badge-PACKING', QUALITY_CHECK: 'badge-QUALITY_CHECK',
+    READY_TO_DISPATCH: 'badge-READY_TO_DISPATCH', DISPATCHED: 'badge-DISPATCHED',
+    COMPLETED: 'badge-COMPLETED', EXCEPTION: 'badge-EXCEPTION',
+};
+
+async function loadOrders() {
+    const search = document.getElementById('order-search').value;
+    const priority = document.getElementById('filter-priority').value;
+    const status = document.getElementById('filter-status').value;
+
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (priority) params.set('priority', priority);
+    if (status) params.set('status', status);
+
+    try {
+        const resp = await fetch('/api/orders?' + params.toString());
+        const data = await resp.json();
+        document.getElementById('order-count').textContent = data.total + ' orders';
+        renderTable(data.orders);
+    } catch(e) {
+        showToast('Failed to load orders', 'error');
+    }
+}
+
+function renderTable(orders) {
+    const tbody = document.getElementById('orders-tbody');
+
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10">
+            <div class="empty-state">
+                <div class="empty-state-icon">◈</div>
+                <div class="empty-state-title">No orders found</div>
+                <div class="empty-state-sub">Try adjusting your filters</div>
+            </div>
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = orders.map(o => {
+        const dl = o.hours_until_deadline !== null ?
+            `<span style="color:${o.deadline_risk ? 'var(--danger)' : 'var(--text-secondary)'};font-size:12px">
+                ${o.deadline_risk ? '🚨 ' : ''}${o.hours_until_deadline}h left
+            </span>` : '<span class="text-muted">—</span>';
+
+        return `<tr>
+            <td><span class="text-mono" style="color:var(--accent-hover)">${o.order_number}</span></td>
+            <td>
+                <div style="font-weight:600">${o.customer_name}</div>
+            </td>
+            <td><span class="badge badge-muted">${o.customer_type}</span></td>
+            <td><span class="badge ${PRIORITY_BADGE[o.priority] || 'badge-muted'}">${o.priority}</span></td>
+            <td><span class="badge ${STATUS_BADGE[o.status] || 'badge-muted'}">${o.status.replace('_',' ')}</span></td>
+            <td><span style="font-weight:700;color:var(--text-primary)">${o.priority_score}</span></td>
+            <td>${o.item_count}</td>
+            <td>£${o.total_value ? o.total_value.toFixed(2) : '0.00'}</td>
+            <td>${dl}</td>
+            <td>
+                <a href="/orders/${o.id}" class="btn-sm btn-primary">View →</a>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+loadOrders();
+</script>
+{% endblock %}

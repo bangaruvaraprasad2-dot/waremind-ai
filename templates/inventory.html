@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block breadcrumb %}Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventory Management</h1>
+        <p class="page-subtitle">Real-time stock visibility across all warehouses</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-ghost" onclick="loadInventory()">↺ Refresh</button>
+        <button class="btn-secondary" onclick="viewReplenishment()">📋 Replenishment Report</button>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px" id="inv-stats">
+    <div class="kpi-card kpi-skeleton"></div>
+    <div class="kpi-card kpi-skeleton"></div>
+    <div class="kpi-card kpi-skeleton"></div>
+    <div class="kpi-card kpi-skeleton"></div>
+</div>
+
+<!-- Filters -->
+<div class="search-filter-bar">
+    <div class="search-input-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="inv-search" placeholder="Search SKU, product name, category..." oninput="debounceInv()">
+    </div>
+    <select class="filter-select" id="filter-category" onchange="loadInventory()">
+        <option value="">All Categories</option>
+    </select>
+    <select class="filter-select" id="filter-risk" onchange="loadInventory()">
+        <option value="">All Risk Levels</option>
+        <option value="CRITICAL">🔴 Critical (Out of Stock)</option>
+        <option value="LOW">🟡 Low Stock</option>
+        <option value="HEALTHY">🟢 Healthy</option>
+    </select>
+</div>
+
+<!-- Table -->
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>SKU</th><th>Product</th><th>Category</th><th>Warehouse</th>
+                <th>Zone/Bin</th><th>Total</th><th>Reserved</th><th>Damaged</th>
+                <th>Available</th><th>Reorder</th><th>Risk</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="inv-tbody">
+            <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Adjust Stock Modal -->
+<div class="modal-overlay" id="adjust-modal" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Adjust Stock</div>
+        <input type="hidden" id="adjust-inv-id">
+        <div class="form-group">
+            <label class="form-label">Adjustment (+/-)</label>
+            <input type="number" class="form-input" id="adjust-qty" placeholder="e.g. +10 or -5">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Reason</label>
+            <textarea class="form-textarea" id="adjust-reason" placeholder="Cycle count, supplier delivery, etc."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModals()">Cancel</button>
+            <button class="btn-primary" onclick="submitAdjust()">Apply Adjustment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Damage Modal -->
+<div class="modal-overlay" id="damage-modal" style="display:none">
+    <div class="modal">
+        <div class="modal-title">⚠️ Report Damage</div>
+        <input type="hidden" id="damage-inv-id">
+        <div class="form-group">
+            <label class="form-label">Damaged Quantity</label>
+            <input type="number" class="form-input" id="damage-qty" min="1" placeholder="Number of damaged units">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Reason / Notes</label>
+            <textarea class="form-textarea" id="damage-reason" placeholder="How was the damage discovered?"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModals()">Cancel</button>
+            <button class="btn-danger" onclick="submitDamage()">Report Damage</button>
+        </div>
+    </div>
+</div>
+
+<!-- Replenishment Modal -->
+<div class="modal-overlay" id="repl-modal" style="display:none">
+    <div class="modal" style="max-width:640px">
+        <div class="modal-title">📋 Replenishment Recommendations</div>
+        <div id="repl-content" style="max-height:400px;overflow-y:auto"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModals()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let debounceTimer;
+function debounceInv() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadInventory, 300); }
+function closeModals() {
+    ['adjust-modal','damage-modal','repl-modal'].forEach(id => document.getElementById(id).style.display = 'none');
+}
+
+const RISK_BADGE = { HEALTHY: 'badge-success', LOW: 'badge-warning', CRITICAL: 'badge-danger' };
+const RISK_LABEL = { HEALTHY: '🟢 Healthy', LOW: '🟡 Low', CRITICAL: '🔴 Critical' };
+
+async function loadInventory() {
+    const search = document.getElementById('inv-search').value;
+    const category = document.getElementById('filter-category').value;
+    const risk = document.getElementById('filter-risk').value;
+
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (category) params.set('category', category);
+    if (risk) params.set('risk', risk);
+
+    const resp = await fetch('/api/inventory?' + params);
+    const data = await resp.json();
+
+    // Stats
+    const stats = data.summary;
+    document.getElementById('inv-stats').innerHTML = `
+        <div class="kpi-card kpi-primary"><div class="kpi-icon">▦</div><div class="kpi-value">${stats.total}</div><div class="kpi-label">Total SKUs</div></div>
+        <div class="kpi-card kpi-success"><div class="kpi-icon">✓</div><div class="kpi-value">${stats.healthy}</div><div class="kpi-label">Healthy Stock</div></div>
+        <div class="kpi-card kpi-warning"><div class="kpi-icon">⚠</div><div class="kpi-value">${stats.low}</div><div class="kpi-label">Low Stock</div></div>
+        <div class="kpi-card kpi-danger"><div class="kpi-icon">✗</div><div class="kpi-value">${stats.critical}</div><div class="kpi-label">Out of Stock</div></div>
+    `;
+
+    // Table
+    const tbody = document.getElementById('inv-tbody');
+    if (!data.items || data.items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><div class="empty-state-icon">▦</div><div class="empty-state-title">No inventory records</div></div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.items.map(i => `
+        <tr>
+            <td class="text-mono" style="color:var(--accent-hover)">${i.sku}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <img src="${i.image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'}" class="product-thumb" alt="${i.name}" onerror="this.src='https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=80'">
+                    <span style="font-weight:600">${i.name}</span>
+                </div>
+            </td>
+            <td><span class="badge badge-muted">${i.category}</span></td>
+            <td style="font-size:12px;color:var(--text-muted)">${i.warehouse_name}</td>
+            <td class="text-mono">${i.zone}-${i.bin_location}</td>
+            <td><strong>${i.quantity}</strong></td>
+            <td style="color:var(--info)">${i.reserved_quantity}</td>
+            <td style="color:${i.damaged_quantity > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${i.damaged_quantity}</td>
+            <td><strong style="color:${i.available_quantity > i.reorder_level ? 'var(--success)' : i.available_quantity > 0 ? 'var(--warning)' : 'var(--danger)'}">${i.available_quantity}</strong></td>
+            <td style="color:var(--text-muted)">${i.reorder_level}</td>
+            <td><span class="badge ${RISK_BADGE[i.risk]}">${RISK_LABEL[i.risk]}</span></td>
+            <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <button class="btn-sm btn-secondary" onclick="openAdjust(${i.inventory_id})">Adjust</button>
+                    <button class="btn-sm btn-danger" onclick="openDamage(${i.inventory_id})">Damage</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function loadCategories() {
+    const resp = await fetch('/api/inventory/categories');
+    const data = await resp.json();
+    const sel = document.getElementById('filter-category');
+    data.categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        sel.appendChild(opt);
+    });
+}
+
+function openAdjust(invId) {
+    document.getElementById('adjust-inv-id').value = invId;
+    document.getElementById('adjust-qty').value = '';
+    document.getElementById('adjust-reason').value = '';
+    document.getElementById('adjust-modal').style.display = 'flex';
+}
+
+function openDamage(invId) {
+    document.getElementById('damage-inv-id').value = invId;
+    document.getElementById('damage-qty').value = '';
+    document.getElementById('damage-reason').value = '';
+    document.getElementById('damage-modal').style.display = 'flex';
+}
+
+async function submitAdjust() {
+    const invId = document.getElementById('adjust-inv-id').value;
+    const adj = parseInt(document.getElementById('adjust-qty').value);
+    const reason = document.getElementById('adjust-reason').value;
+    if (isNaN(adj)) { showToast('Please enter a valid number', 'error'); return; }
+    const resp = await fetch('/api/inventory/' + invId + '/adjust', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({adjustment: adj, reason})
+    });
+    const data = await resp.json();
+    closeModals();
+    if (data.error) { showToast('Error: ' + data.error, 'error'); }
+    else { showToast('✅ ' + data.message, 'success'); loadInventory(); }
+}
+
+async function submitDamage() {
+    const invId = document.getElementById('damage-inv-id').value;
+    const qty = parseInt(document.getElementById('damage-qty').value);
+    const reason = document.getElementById('damage-reason').value;
+    if (!qty || qty <= 0) { showToast('Enter a valid damage quantity', 'error'); return; }
+    const resp = await fetch('/api/inventory/' + invId + '/damage', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({quantity: qty, reason})
+    });
+    const data = await resp.json();
+    closeModals();
+    if (data.error) { showToast('Error: ' + data.error, 'error'); }
+    else { showToast('⚠️ ' + data.message, 'warning'); loadInventory(); }
+}
+
+async function viewReplenishment() {
+    const resp = await fetch('/api/inventory/replenishment/all');
+    const data = await resp.json();
+    const modal = document.getElementById('repl-modal');
+    const content = document.getElementById('repl-content');
+    const riskColor = { CRITICAL: 'var(--danger)', HIGH: 'var(--warning)', MEDIUM: 'var(--info)', LOW: 'var(--success)' };
+    content.innerHTML = data.recommendations.length === 0 ?
+        '<div class="empty-state"><div class="empty-state-icon">✓</div><div class="empty-state-title">All stock levels are healthy!</div></div>' :
+        data.recommendations.map(r => `
+            <div style="padding:12px;border-bottom:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <strong>${r.name}</strong>
+                    <span style="color:${riskColor[r.risk]};font-weight:700">${r.risk}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">${r.reason}</div>
+                <div style="font-size:11px;color:var(--text-muted)">Available: ${r.available_stock} | Reorder at: ${r.reorder_level} | Recommend: ${r.recommended_quantity} units from ${r.supplier}</div>
+            </div>
+        `).join('');
+    modal.style.display = 'flex';
+}
+
+loadCategories();
+loadInventory();
+</script>
+{% endblock %}

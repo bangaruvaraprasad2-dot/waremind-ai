@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WareMind AI — Smart Warehouse Operations & Order Fulfillment Intelligence Platform">
+    <title>{% block title %}WareMind AI{% endblock %} — Smart Warehouse Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">⬡</div>
+        <div class="brand-text">
+            <span class="brand-name">WareMind</span>
+            <span class="brand-sub">AI Platform</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">OVERVIEW</div>
+        <a href="/" class="nav-item {% if page == 'landing' %}active{% endif %}" id="nav-landing">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Landing Page</span>
+        </a>
+        <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}" id="nav-dashboard">
+            <span class="nav-icon">⊞</span>
+            <span class="nav-label">Control Tower</span>
+        </a>
+
+        <div class="nav-section-label">OPERATIONS</div>
+        <a href="/orders" class="nav-item {% if page == 'orders' %}active{% endif %}" id="nav-orders">
+            <span class="nav-icon">◈</span>
+            <span class="nav-label">Orders</span>
+            <span class="nav-badge" id="sidebar-orders-badge"></span>
+        </a>
+        <a href="/inventory" class="nav-item {% if page == 'inventory' %}active{% endif %}" id="nav-inventory">
+            <span class="nav-icon">▦</span>
+            <span class="nav-label">Inventory</span>
+        </a>
+        <a href="/exceptions" class="nav-item {% if page == 'exceptions' %}active{% endif %}" id="nav-exceptions">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-label">Exception Center</span>
+            <span class="nav-badge nav-badge-danger" id="sidebar-exceptions-badge"></span>
+        </a>
+
+        <div class="nav-section-label">INTELLIGENCE</div>
+        <a href="/analytics" class="nav-item {% if page == 'analytics' %}active{% endif %}" id="nav-analytics">
+            <span class="nav-icon">◉</span>
+            <span class="nav-label">Analytics</span>
+        </a>
+        <a href="/copilot" class="nav-item {% if page == 'copilot' %}active{% endif %}" id="nav-copilot">
+            <span class="nav-icon">✦</span>
+            <span class="nav-label">AI Copilot</span>
+            <span class="nav-tag">AI</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="warehouse-status">
+            <div class="status-dot"></div>
+            <div>
+                <div class="status-name">Central Hub</div>
+                <div class="status-sub">ACTIVE</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- ── MAIN LAYOUT ─────────────────────────────────────────────────────────── -->
+<div class="main-wrapper">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+            <div class="page-breadcrumb">
+                <span class="breadcrumb-home">WareMind AI</span>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-current">{% block breadcrumb %}Dashboard{% endblock %}</span>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-time" id="topbar-time"></div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleThemeMode()" title="Toggle Dark/Light Mode">
+                🌙 Dark
+            </button>
+            <button class="crisis-btn" onclick="showCrisisModal()" title="Run crisis simulation">
+                🚨 Simulate Crisis
+            </button>
+            <div class="topbar-avatar">
+                <div class="avatar-circle">WM</div>
+                <div>
+                    <div class="avatar-name">Warehouse Manager</div>
+                    <div class="avatar-role">Admin</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main class="page-content">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<!-- ── CRISIS MODAL ────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="crisis-modal" style="display:none;">
+    <div class="modal crisis-modal-box">
+        <div class="crisis-header">
+            <div class="crisis-icon-big">🚨</div>
+            <h2>Simulate Warehouse Crisis</h2>
+            <p>This will create a realistic inventory conflict scenario for demonstration.</p>
+        </div>
+        <div class="crisis-scenario">
+            <div class="scenario-item">
+                <span class="scenario-label">Critical Order</span>
+                <span class="scenario-val">Requires 10 units</span>
+            </div>
+            <div class="scenario-arrow">→</div>
+            <div class="scenario-item">
+                <span class="scenario-label">Available Stock</span>
+                <span class="scenario-val shortage">Only 7 units</span>
+            </div>
+            <div class="scenario-arrow">+</div>
+            <div class="scenario-item">
+                <span class="scenario-label">Normal Order</span>
+                <span class="scenario-val">Also needs 5 units</span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeCrisisModal()">Cancel</button>
+            <button class="btn-danger" id="run-crisis-btn" onclick="runCrisisSimulation()">
+                🚨 Run Simulation
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── CRISIS RESULT MODAL ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="crisis-result-modal" style="display:none;">
+    <div class="modal crisis-result-box">
+        <div class="crisis-alert-header">
+            <div class="crisis-alert-badge">🚨 INVENTORY CONFLICT DETECTED</div>
+        </div>
+        <div id="crisis-result-content"></div>
+        <div class="modal-actions" id="crisis-result-actions"></div>
+    </div>
+</div>
+
+<!-- ── TOAST CONTAINER ────────────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Live clock
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+        const dateStr = now.toLocaleDateString('en-GB', {weekday: 'short', day: 'numeric', month: 'short'});
+        const el = document.getElementById('topbar-time');
+        if (el) el.innerHTML = `<span>${dateStr}</span> <strong>${timeStr}</strong>`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Theme mode toggle (Dark / Light)
+    function applySavedTheme() {
+        const savedTheme = localStorage.getItem('wm_theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            const btn = document.getElementById('theme-toggle-btn');
+            if (btn) btn.innerHTML = '☀️ Light';
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            const btn = document.getElementById('theme-toggle-btn');
+            if (btn) btn.innerHTML = '🌙 Dark';
+        }
+    }
+    function toggleThemeMode() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        if (currentTheme === 'light') {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('wm_theme', 'dark');
+            document.getElementById('theme-toggle-btn').innerHTML = '🌙 Dark';
+            showToast('Switched to Dark Mode', 'info');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('wm_theme', 'light');
+            document.getElementById('theme-toggle-btn').innerHTML = '☀️ Light';
+            showToast('Switched to Light Mode', 'info');
+        }
+    }
+    applySavedTheme();
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-wrapper').classList.toggle('sidebar-collapsed');
+    }
+
+    // Update sidebar badges
+    async function updateSidebarBadges() {
+        try {
+            const resp = await fetch('/api/dashboard');
+            const data = await resp.json();
+            const excBadge = document.getElementById('sidebar-exceptions-badge');
+            const ordBadge = document.getElementById('sidebar-orders-badge');
+            if (excBadge && data.kpis.open_exceptions > 0) {
+                excBadge.textContent = data.kpis.open_exceptions;
+                excBadge.style.display = 'flex';
+            }
+            if (ordBadge && data.kpis.critical_orders > 0) {
+                ordBadge.textContent = data.kpis.critical_orders;
+                ordBadge.style.display = 'flex';
+            }
+        } catch(e) {}
+    }
+    updateSidebarBadges();
+
+    // Crisis simulation
+    function showCrisisModal() {
+        document.getElementById('crisis-modal').style.display = 'flex';
+    }
+    function closeCrisisModal() {
+        document.getElementById('crisis-modal').style.display = 'none';
+    }
+
+    async function runCrisisSimulation() {
+        const btn = document.getElementById('run-crisis-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Running...';
+        try {
+            const resp = await fetch('/api/simulation/crisis', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({})});
+            const data = await resp.json();
+            closeCrisisModal();
+            showCrisisResult(data);
+        } catch(e) {
+            showToast('Simulation failed: ' + e.message, 'error');
+            btn.disabled = false;
+            btn.textContent = '🚨 Run Simulation';
+        }
+    }
+
+    function showCrisisResult(data) {
+        const modal = document.getElementById('crisis-result-modal');
+        const content = document.getElementById('crisis-result-content');
+        const actions = document.getElementById('crisis-result-actions');
+
+        content.innerHTML = `
+            <div class="crisis-summary">
+                <div class="crisis-product-info">
+                    <h3>Product in Conflict: <span>${data.scenario?.product?.name || 'N/A'}</span></h3>
+                    <div class="crisis-stats">
+                        <div class="cs-item cs-avail"><span>Available</span><strong>${data.scenario?.available_stock || 0}</strong></div>
+                        <div class="cs-item cs-demand"><span>Total Demand</span><strong>${data.scenario?.total_demand || 15}</strong></div>
+                        <div class="cs-item cs-short"><span>Shortfall</span><strong>${data.scenario?.shortfall || 8}</strong></div>
+                    </div>
+                </div>
+
+                <div class="crisis-orders-compare">
+                    <div class="crisis-order critical-order-card">
+                        <div class="co-badge critical">CRITICAL</div>
+                        <div class="co-num">${data.critical_order?.order_number}</div>
+                        <div class="co-detail">Required: <strong>${data.critical_order?.required} units</strong></div>
+                        <div class="co-detail">Allocated: <strong class="text-success">${data.critical_order?.allocated} units</strong></div>
+                        <div class="co-detail">Shortage: <strong class="text-danger">${data.critical_order?.shortage} units</strong></div>
+                        <div class="co-score">Score: ${data.critical_order?.priority_score}</div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="crisis-order normal-order-card">
+                        <div class="co-badge normal">NORMAL</div>
+                        <div class="co-num">${data.normal_order?.order_number}</div>
+                        <div class="co-detail">Required: <strong>${data.normal_order?.required} units</strong></div>
+                        <div class="co-detail">Allocated: <strong>${data.normal_order?.allocated} units</strong></div>
+                        <div class="co-score">Score: ${data.normal_order?.priority_score}</div>
+                    </div>
+                </div>
+
+                <div class="system-decision-box">
+                    <div class="sd-label">🤖 SYSTEM DECISION</div>
+                    <div class="sd-text">${data.decision}</div>
+                    <div class="sd-reason"><strong>Reason:</strong> ${data.reason}</div>
+                </div>
+            </div>
+        `;
+
+        actions.innerHTML = `
+            <button class="btn-secondary" onclick="document.getElementById('crisis-result-modal').style.display='none'">Close</button>
+            <button class="btn-primary" onclick="applyCrisisDecision(${data.critical_order?.order_id}, ${data.normal_order?.order_id}, ${data.exception_id})">
+                ✅ Apply Decision
+            </button>
+        `;
+
+        modal.style.display = 'flex';
+    }
+
+    async function applyCrisisDecision(criticalId, normalId, excId) {
+        try {
+            const resp = await fetch('/api/simulation/crisis/apply', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    critical_order_id: criticalId,
+                    normal_order_id: normalId,
+                    exception_id: excId
+                })
+            });
+            const data = await resp.json();
+            document.getElementById('crisis-result-modal').style.display = 'none';
+            showToast('✅ Crisis decision applied! Critical order moved to PICKING.', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } catch(e) {
+            showToast('Failed to apply decision', 'error');
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 400);
+        }, 4000);
+    }
+    window.showToast = showToast;
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
